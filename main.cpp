@@ -6,7 +6,7 @@
 //#include <Singular/libsingular.h>
 //#include <Polynomial/Polynomial.hpp>
 
-void testGmp();
+//void testGmp();
 
 int main(int argc, char** argv){
     // l'algoritmo da usare dev'essere argv[1], n dev'essere argv[2]
@@ -36,7 +36,7 @@ int main(int argc, char** argv){
 
 
 
-void testGmp(){
+/*void testGmp(){
     //std::float16_t A;
     uint32_t* B;
     uint64_t N=0;
@@ -55,4 +55,4 @@ void testGmp(){
     mpz_class y;
     mpz_powm(x.get_mpz_t(), v.get_mpz_t(), w.get_mpz_t(), x.get_mpz_t());
     std::cout << y << std::endl;
-}
+}*/
