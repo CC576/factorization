@@ -6,7 +6,37 @@
 //#include <Singular/libsingular.h>
 //#include <Polynomial/Polynomial.hpp>
 
-int main(int, char**){
+void testGmp();
+
+int main(int argc, char** argv){
+    // l'algoritmo da usare dev'essere argv[1], n dev'essere argv[2]
+
+    if(argc < 3){
+        std::cerr << "Usage: " << argv[0] << " <algorithm> <n>";
+        return -1;
+    }
+
+    mpz_class n;
+    n = argv[2];
+
+    mpz_class base = sqrt(n);
+
+    mpz_class p,q;
+    for(p = 2; p <= base; p++){
+        if(n%p == 0){
+            q = n/p;
+            break;
+        }
+    }
+
+    std::cout << "(" << p << ", " << q << ")" << std::endl;
+
+    return 0;
+}
+
+
+
+void testGmp(){
     //std::float16_t A;
     uint32_t* B;
     uint64_t N=0;
