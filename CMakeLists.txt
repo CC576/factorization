@@ -13,13 +13,13 @@ ExternalProject_Add(extern-blanczos
 )
 
 # non utile
-ExternalProject_Add(extern-polynomial
-    GIT_REPOSITORY https://github.com/jonathanventura/polynomial
-    CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION}
-)
+# ExternalProject_Add(extern-polynomial
+#     GIT_REPOSITORY https://github.com/jonathanventura/polynomial
+#     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION}
+# )
 
 include_directories(${EXTERNAL_INSTALL_LOCATION}/include)
-include_directories(/usr/include/singular/)
+#include_directories(/usr/include/singular/)
 link_directories(${EXTERNAL_INSTALL_LOCATION}/lib)
 
 add_executable(factoring_algorithms main.cpp)

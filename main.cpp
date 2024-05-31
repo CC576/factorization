@@ -12,7 +12,7 @@ int main(int, char**){
     uint64_t N=0;
     uint32_t Nrow=1, Ncol=65;
     uint64_t* result;
-    blanczos(B, N, Nrow, Ncol, result);
+    //blanczos(B, N, Nrow, Ncol, result);
     printf("Hello, from factoring_algorithms!\n");
 
     mpz_class v;
