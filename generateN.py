@@ -13,6 +13,8 @@ while q==p:
 
 n = p*q
 
-print(n)
+print("n: ", n)
+print("(p,q): ", (p,q))
 
-subprocess.run(["./factoring_algorithms", "1", str(n)])
+print("Result:")
+subprocess.run(["./factoring_algorithms", "2", str(n)])

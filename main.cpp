@@ -9,6 +9,7 @@
 #include <tuple>
 
 #include "src/trial_div/trial_division.hpp"
+#include "src/fermat/fermat.hpp"
 
 //void testGmp();
 
@@ -22,10 +23,24 @@ int main(int argc, char** argv){
 
     mpz_class n;
     n = argv[2];
-
     mpz_class p,q;
 
-    std::tie(p, q) = trial_division(n);
+    int alg = argv[1][0] - '0';
+
+    switch (alg)
+    {
+    case 1:
+        std::tie(p, q) = trial_division(n);
+        break;
+
+    case 2:
+        std::tie(p, q) = fermat(n);
+        break;
+
+    default:
+        std::cerr << "Invalid algorithm " << alg << std::endl;
+        return -2;
+    }
 
     std::cout << "(" << p << ", " << q << ")" << std::endl;
 
