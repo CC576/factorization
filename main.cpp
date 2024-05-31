@@ -3,8 +3,12 @@
 #include <blanczos.h>
 #include <gmp.h>
 #include <gmpxx.h>
+#include <mpfr.h>
 //#include <Singular/libsingular.h>
 //#include <Polynomial/Polynomial.hpp>
+#include <tuple>
+
+#include "src/trial_div/trial_division.hpp"
 
 //void testGmp();
 
@@ -19,15 +23,9 @@ int main(int argc, char** argv){
     mpz_class n;
     n = argv[2];
 
-    mpz_class base = sqrt(n);
-
     mpz_class p,q;
-    for(p = 2; p <= base; p++){
-        if(n%p == 0){
-            q = n/p;
-            break;
-        }
-    }
+
+    std::tie(p, q) = trial_division(n);
 
     std::cout << "(" << p << ", " << q << ")" << std::endl;
 

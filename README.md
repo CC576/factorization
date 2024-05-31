@@ -7,4 +7,4 @@ Tutti questi comandi vanno eseguiti **da dentro la cartella `build/`** (crearla 
 - Per compilare il `main.cpp`: `make factoring_algorithms`
     - Per eseguire l'esebuibile creato: `./factoring_algorithms`
 - Per compilare i test: `make all_tests`
-    - Per eseguire i test: `cmake`
+    - Per eseguire i test: `ctest --output-on-failure`
