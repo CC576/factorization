@@ -22,5 +22,5 @@ void fermat(mpz_class& n, mpz_class& p, mpz_class& q){
         }
     }
 
-    mpz_class p = x-y, q = x+y;
+    p = x-y, q = x+y;
 }
