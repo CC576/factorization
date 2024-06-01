@@ -1,5 +1,5 @@
 #include "quadratic_sieve.hpp"
-//#include<iostream>
+#include<iostream>
 
 void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
 
@@ -11,7 +11,7 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
 
     // costruire factor base
     std::vector<std::pair<mpz_class, unsigned short>> factorBase;
-    buildFactorBase(n, B, factorBase);
+    unsigned short logMaxP2 = buildFactorBase(n, B, factorBase);
     unsigned long long numPrimes = factorBase.size();
 
     /*std::cerr << std::endl << std::endl << factorBase.size() << std::endl << std::endl;
@@ -21,10 +21,10 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
 
 
     // inizializzare sieve
-    //std::unordered_map<unsigned long long, std::forward_list<std::pair<mpz_class, unsigned short>>> setaccio;
+    std::unordered_map<mpz_class, elemSetaccio> setaccio;
     // il setaccio sarà indicizzato da a=1..., con a=x-floor(sqrt(n)) --> y(x)=(a+base)^2 - n
     mpz_class base = sqrt(n);
-    //initializeSieve(n, base, L, factorBase, setaccio);
+    initializeSieve(n, base, L, factorBase, setaccio);
 
 
 
@@ -57,46 +57,118 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
 }
 
 
-void findRoot(mpz_class& n, mpz_class& p, mpz_class& r){
-
+unsigned long getOrdInSylow(const mpz_class& p, mpz_class& u, unsigned long s, mpz_class& tmp){
+    unsigned long rk = 0;   // esponente da dare a 2 per avere u^(2^rk) == 1 % p
+    tmp = u;
+    while(tmp != 1 && rk < s){
+        tmp = (tmp*tmp)%p;
+        rk++;
+    }
+    return rk;
 }
 
 
 
+void findRoot(mpz_class& a, const mpz_class& p, mpz_class& v, mpz_class& u, mpz_class& m, mpz_class& c){    // andrebbero bene anche dei long long probabilmente
+    // implementa Tonelli-Shanks
+std::cerr<<"here"<<std::endl<<std::flush;
+    if(p%4 == 3){
+        m = (p+1)/4;
+        mpz_powm(v.get_mpz_t(), a.get_mpz_t(), m.get_mpz_t(), p.get_mpz_t());
+        return;
+    }
+std::cerr<<"here2\n";
+    m = p-1;
+    unsigned long s = mpz_scan1(m.get_mpz_t(), 0), rk;  // s è l'esponente di 2 più grande in p-1
+std::cerr<<s<<"\n"<<std::flush;
+    m >>= s;     // adesso m è la parte dispari di p-1
+std::cerr<<s<<" "<<m<<"\n"<<std::flush;
+    mpz_powm(u.get_mpz_t(), a.get_mpz_t(), m.get_mpz_t(), p.get_mpz_t());   // u == a^m mod p
+    m = (m+1)/2;
+    mpz_powm(v.get_mpz_t(), a.get_mpz_t(), m.get_mpz_t(), p.get_mpz_t());   // v == a^((m+1)/2) mod p
+    m = 2*m - 1;
 
-void initializeSieve(mpz_class& n, mpz_class& base, mpz_class& L, std::vector<std::pair<mpz_class, unsigned short>>& factorBase, std::unordered_map<unsigned int, std::forward_list<std::pair<mpz_class, unsigned short>>>& setaccio){
-    mpz_class p, Pot;
-    std::vector<mpz_class> roots;
-    for(auto& coppia : factorBase){
-        if(p == 2){
-            roots.push_back(0);
-        } else{
-            roots.resize(2);
-            findRoot(n, p, roots[0]);
-            roots[1] = p-roots[0];
-        }
+    if(u==1) return;
 
-        for(auto& r : roots){
+    getNonQResidue(p, c);
+    mpz_powm(c.get_mpz_t(), c.get_mpz_t(), m.get_mpz_t(), p.get_mpz_t());   // da qui m non dovrebbe servire più; c è nel sylow subgroup
 
-        }
+    while(u != 1){
+        rk = getOrdInSylow(p, u, s, m);
+        m = 2;
+        mpz_pow_ui(m.get_mpz_t(), m.get_mpz_t(), s-rk-1);   // m = 2^(s-rk-1)
 
+        mpz_powm(c.get_mpz_t(), c.get_mpz_t(), m.get_mpz_t(), p.get_mpz_t());
+        v = (v*c) % p;
+        c = (c*c) % p;
+        u = (u*c) % p;
 
-        //potenze (ricordarsi che per p=2 c'è un'unica radice)
+        s = rk; // i nuovi elementi hanno ord che divide 2^rk
     }
 }
 
 
 
+void initializeSieve(mpz_class& n, mpz_class& base, mpz_class& L, std::vector<std::pair<mpz_class, unsigned short>>& factorBase, std::unordered_map<mpz_class, elemSetaccio>& setaccio){
+    // il setaccio sarà indicizzato da a=1..., con a=x-floor(sqrt(n)) --> y(x)=(a+base)^2 - n
+
+    mpz_class p, Pot, Pot_, a, tmp1, tmp2, tmp3;
+    std::vector<mpz_class> roots;
+    for(auto& coppia : factorBase){
+        p = coppia.first;
+        unsigned short l = coppia.second;
+
+        if(p == 2){
+            roots.push_back(1); // assumo che n sia dispari
+        } else{
+            roots.resize(0);
+            roots.resize(2);
+            a = n%p;
+            findRoot(a, p, roots[0], tmp1, tmp2, tmp3);
+            roots[1] = p-roots[0];
+        }
+
+        for(auto& r : roots){
+            // individuale il valore positivo di a più piccolo per cui a+base == r mod p
+            // --> a == r-base mod p
+            a = (r - base) % p; // la divisione tronca verso 0
+            if(a < 0) a += p;
+
+            auto it = setaccio.find(a);
+            if(it == setaccio.end()){
+                setaccio[a] = elemSetaccio{std::make_pair(p, l)};
+            }else{
+                it->second.push_front(std::make_pair(p, l));
+            }
+        }
+
+
+        //potenze (ricordarsi che per p=2 c'è un'unica radice, per Pot = 4 ce ne sono 2 per quadrato, da Pot=8 in poi ogni quadrato ha  4 radici)
+
+
+    }
+}
+
+
+void getNonQResidue(const mpz_class& p, mpz_class& c){
+    gmp_randstate_t state;
+    gmp_randinit_mt(state);
+    int l;
+    do{
+        mpz_urandomm (c.get_mpz_t(), state, p.get_mpz_t());
+        l = mpz_legendre(c.get_mpz_t(), p.get_mpz_t());
+    } while(l != -1);
+}
 
 
 
-void buildFactorBase(mpz_class& n, mpz_class& B, std::vector<std::pair<mpz_class, unsigned short>>& factorBase){
+unsigned short buildFactorBase(mpz_class& n, mpz_class& B, std::vector<std::pair<mpz_class, unsigned short>>& factorBase){
     // effettua anche controllo simbolo di Legendre, che per versione MPQS va spostato nell'inizializzazione del sieve
-
     mpz_class tmp;
     unsigned long long b = mpz_2_ull(B, tmp);  // sto assumendo che B sia < 2^64 e che possa stare in un long long
 
     std::vector<bool> composite(b+1);
+    unsigned short logMaxP = 1<<6;
 
     for(unsigned long long p=2; p<=b; p++){
         if(composite[p]) continue;
@@ -114,7 +186,10 @@ void buildFactorBase(mpz_class& n, mpz_class& B, std::vector<std::pair<mpz_class
         unsigned short log2p = (unsigned short) (log2pD * (1<<6));
 
         factorBase.push_back(std::make_pair(tmp, log2p));
+
+        logMaxP = std::max(logMaxP, log2p);
     }
+    return logMaxP << 1;
 }
 
 

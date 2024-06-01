@@ -55,6 +55,19 @@ TEST(Quadratic, factorBase){
   ASSERT_EQ(primi1, primi2);
 }
 
+TEST(Quadratic, findRootModP3mod4){
+  mpz_class root = 302, p = 7883, a = (root*root)%p, tmp1, tmp2, tmp3, v;
+  findRoot(a, p, v, tmp1, tmp2, tmp3);
+  ASSERT_EQ((v*v)%p, a);
+}
+
+
+TEST(Quadratic, findRootModP1mod4){
+  mpz_class root = 102, p = 257, a = (root*root)%p, tmp1, tmp2, tmp3, v;
+  findRoot(a, p, v, tmp1, tmp2, tmp3);
+  ASSERT_EQ((v*v)%p, a);
+}
+
 
 
 

@@ -7,6 +7,7 @@
 //#include <Singular/libsingular.h>
 //#include <Polynomial/Polynomial.hpp>
 #include <tuple>
+#include <cassert>
 
 #include "src/utils/utils_mpz/hash_mpz.hpp"
 #include "src/utils/utils_mpz/mpz_ull.hpp"
@@ -17,7 +18,7 @@
 
 //void testGmp();
 
-int main(int argc, char** argv){
+int main1(int argc, char** argv){
     // l'algoritmo da usare dev'essere argv[1], n dev'essere argv[2]
 
     if(argc < 3){
@@ -28,7 +29,7 @@ int main(int argc, char** argv){
     mpz_class n;
     n = argv[2];
     mpz_class p,q;
-
+//std::cout<<mpz_scan1(n.get_mpz_t(), 0)<<std::endl;
     int alg = argv[1][0] - '0';
 
     switch (alg)
@@ -55,6 +56,19 @@ int main(int argc, char** argv){
     return 0;
 }
 
+int main(){
+    /*mpz_class coso, coso2;
+    coso = "18446744073709551616";
+    coso2 = coso>>32;
+    std::cerr<<coso2<<std::endl;
+    return 0;*/
+
+    mpz_class root = 102, p = 257, a = (root*root)%p, tmp1, tmp2, tmp3, v;
+    findRoot(a, p, v, tmp1, tmp2, tmp3);
+    assert((v*v)%p == a);
+
+    return 0;
+}
 
 
 /*void testGmp(){

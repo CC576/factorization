@@ -19,4 +19,4 @@ template<> struct hash<mpz_class> {
 
 }
 
-#endif /* HASH_MPZ_H_ */
+#endif /* HASH_MPZ_HPP_ */
