@@ -18,7 +18,7 @@
 
 //void testGmp();
 
-int main1(int argc, char** argv){
+int main(int argc, char** argv){
     // l'algoritmo da usare dev'essere argv[1], n dev'essere argv[2]
 
     if(argc < 3){
@@ -29,7 +29,7 @@ int main1(int argc, char** argv){
     mpz_class n;
     n = argv[2];
     mpz_class p,q;
-//std::cout<<mpz_scan1(n.get_mpz_t(), 0)<<std::endl;
+    //std::cout<<mpz_scan1(n.get_mpz_t(), 0)<<std::endl;
     int alg = argv[1][0] - '0';
 
     switch (alg)
@@ -56,7 +56,7 @@ int main1(int argc, char** argv){
     return 0;
 }
 
-int main(){
+int main2(){
     /*mpz_class coso, coso2;
     coso = "18446744073709551616";
     coso2 = coso>>32;
