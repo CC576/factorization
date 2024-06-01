@@ -16,5 +16,6 @@ n = p*q
 print("n: ", n)
 print("(p,q): ", (p,q))
 
-print("Result:")
-subprocess.run(["./factoring_algorithms", "2", str(n)])
+if(len(sys.argv) > 2):
+    print("Result:")
+    subprocess.run(["./factoring_algorithms", sys.argv[2], str(n)])
