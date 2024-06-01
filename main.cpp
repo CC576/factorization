@@ -10,6 +10,7 @@
 
 #include "src/trial_div/trial_division.hpp"
 #include "src/fermat/fermat.hpp"
+#include "src/quadratic_sieve/quadratic_sieve.hpp"
 
 //void testGmp();
 
@@ -30,11 +31,15 @@ int main(int argc, char** argv){
     switch (alg)
     {
     case 1:
-        std::tie(p, q) = trial_division(n);
+        trial_division(n, p, q);
         break;
 
     case 2:
-        std::tie(p, q) = fermat(n);
+        fermat(n, p, q);
+        break;
+
+    case 3:
+        quadratic_sieve(n, p, q);
         break;
 
     default:

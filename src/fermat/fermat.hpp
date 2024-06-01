@@ -3,8 +3,7 @@
 
 #include <gmp.h>
 #include <gmpxx.h>
-#include <utility>
 
-std::pair<mpz_class, mpz_class> fermat(mpz_class);
+void fermat(mpz_class&, mpz_class&, mpz_class&);
 
 #endif

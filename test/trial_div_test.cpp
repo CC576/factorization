@@ -9,7 +9,7 @@
 TEST(TrialDivision, NeqPQ) {
   mpz_class n = 700757277917;
   mpz_class p, q;
-  std::tie(p, q) = trial_division(n);
+  trial_division(n, p, q);
 
   ASSERT_EQ(n, p*q);
 }

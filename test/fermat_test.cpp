@@ -9,7 +9,7 @@
 TEST(Fermat, NeqPQ) {
   mpz_class n = 700757277917;
   mpz_class p, q;
-  std::tie(p, q) = fermat(n);
+  fermat(n, p, q);
 
   ASSERT_EQ(n, p*q);
 }

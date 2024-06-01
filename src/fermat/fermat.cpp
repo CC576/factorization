@@ -2,7 +2,7 @@
 //#include <iostream>
 
 
-std::pair<mpz_class, mpz_class> fermat(mpz_class n){
+void fermat(mpz_class& n, mpz_class& p, mpz_class& q){
     //std::cerr << n << std::endl;
     mpz_class base = sqrt(n), h = base*base - n;
     //mpz_class i = 0;
@@ -23,6 +23,4 @@ std::pair<mpz_class, mpz_class> fermat(mpz_class n){
     }
 
     mpz_class p = x-y, q = x+y;
-
-    return std::make_pair(p, q);
 }

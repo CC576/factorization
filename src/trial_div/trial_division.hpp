@@ -3,8 +3,7 @@
 
 #include <gmp.h>
 #include <gmpxx.h>
-#include <utility>
 
-std::pair<mpz_class, mpz_class> trial_division(mpz_class);
+void trial_division(mpz_class&, mpz_class&, mpz_class&);
 
 #endif
