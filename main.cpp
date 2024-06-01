@@ -8,6 +8,9 @@
 //#include <Polynomial/Polynomial.hpp>
 #include <tuple>
 
+#include "src/utils/utils_mpz/hash_mpz.hpp"
+#include "src/utils/utils_mpz/mpz_ull.hpp"
+
 #include "src/trial_div/trial_division.hpp"
 #include "src/fermat/fermat.hpp"
 #include "src/quadratic_sieve/quadratic_sieve.hpp"
