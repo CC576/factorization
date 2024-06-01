@@ -21,12 +21,18 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
 
 
     // inizializzare sieve
-    std::unordered_map<mpz_class, elemSetaccio> setaccio;
+    std::/*unordered_*/map<mpz_class, elemSetaccio> setaccio;
     // il setaccio sarà indicizzato da a=1..., con a=x-floor(sqrt(n)) --> y(x)=(a+base)^2 - n
-    mpz_class base = sqrt(n);
+    mpz_class base = sqrt(n) + 1;
     initializeSieve(n, base, L, factorBase, setaccio);
 
-
+    for (auto i = setaccio.begin(); i != setaccio.end(); i++){
+        std::cerr << i->first + base << ":\n\t";
+        for(auto j = i->second.begin(); j != i->second.end(); j++){
+            std::cerr << "[" << j->first << ", " << (double(j->second) / (1<<6)) << "]  ";
+        }
+        std::cerr << "\n";
+    }
 
     // controllare che il setaccio sia stato inizializzato correttamente
 
@@ -59,7 +65,7 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
 
 
 
-void initializeSieve(mpz_class& n, mpz_class& base, mpz_class& L, std::vector<std::pair<mpz_class, unsigned short>>& factorBase, std::unordered_map<mpz_class, elemSetaccio>& setaccio){
+void initializeSieve(mpz_class& n, mpz_class& base, mpz_class& L, std::vector<std::pair<mpz_class, unsigned short>>& factorBase, std::/*unordered_*/map<mpz_class, elemSetaccio>& setaccio){
     // il setaccio sarà indicizzato da a=1..., con a=x-floor(sqrt(n)) --> y(x)=(a+base)^2 - n
 
     mpz_class p, Pot, Pot_, a, tmp1, tmp2, tmp3;
@@ -208,13 +214,13 @@ unsigned short buildFactorBase(mpz_class& n, mpz_class& B, std::vector<std::pair
 
 
 void choose_params(mpz_class &n, mpz_class &B, mpz_class &L){
-    // B = exp((1/2)*(logn loglogn)^(1/2)), e controllare che sia almeno 5
+    // B = exp((1/2 + o(1))*(logn loglogn)^(1/2)), e controllare che sia almeno 5
         // (altrimenti ci vuole troppo tempo per i numeri piccoli perché non si trovano abbastanza B-smooth)
 
     // L = exp((logn loglogn)^(1/2)-(1/2)*loglogn), e controllare che sia almeno 100
 
     double logn = log(n.get_d()), loglogn = log(logn);
-    double b = exp((1/2.0)*sqrt(logn * loglogn)), l = exp(sqrt(logn * loglogn) - (1/2.0)*loglogn);
+    double b = exp((1/2.0 + 0.1)*sqrt(logn * loglogn)), l = exp(sqrt(logn * loglogn) - (1/2.0)*loglogn);
 
     B = b; L = l;
     if(B < 5) B=5;
