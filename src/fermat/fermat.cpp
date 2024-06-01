@@ -1,5 +1,5 @@
 #include "fermat.hpp"
-#include <iostream>
+//#include <iostream>
 
 
 std::pair<mpz_class, mpz_class> fermat(mpz_class n){
