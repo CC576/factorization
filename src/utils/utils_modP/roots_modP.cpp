@@ -1,6 +1,33 @@
 #include "roots_modP.hpp"
 
 
+void extendRootP(mpz_class& r, mpz_class& a, mpz_class& Pot_, mpz_class& p, mpz_class& k, mpz_class& d, mpz_class& c){
+    // r^2 == a mod Pot_, con Pot_ = p^i
+    // vogliamo mettere in r una radice di a modulo p*Pot_ = p^(i+1)
+    // ora r^2 = a+(p^i)*k, ci serve k mod p per restituire r = r + k*inv(2r,p)*p^i = r + k*inv(2r,p)*Pot_
+    k = ((a - r*r)/Pot_) % p;
+    if(k == 0) return;
+    if(k<0) k+=p;
+
+    r <<= 1;
+    if(!mpz_invert(d.get_mpz_t(), r.get_mpz_t(), p.get_mpz_t())) return;    // non dovrebbe succedere, dovrei usare exceptions?
+    r >>= 1;
+
+    c = (d*k)%p;
+    r += c*Pot_;
+}
+
+
+void extendRoot2(mpz_class& r, mpz_class& a, mpz_class& Pot_, mpz_class& tmp){
+    // r^2 == a mod Pot_, con Pot_=2^n
+    // vogliamo mettere in r una radice di a modulo 2*Pot_ = 2^(n+1)
+    // ora r^2 = a+(2^n)*k, ci serve k mod 2 per restituire r = r + 2^(n-1)*k = r + (Pot_>>1)*k
+    tmp = r*r - a;
+    tmp = tmp/Pot_;
+    if(mpz_odd_p(tmp.get_mpz_t())) r += (Pot_>>1);
+}
+
+
 
 
 void findRoot(const mpz_class& a, const mpz_class& p, mpz_class& v, mpz_class& u, mpz_class& m, mpz_class& c){    // andrebbero bene anche dei long long probabilmente
