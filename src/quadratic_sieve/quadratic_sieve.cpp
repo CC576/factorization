@@ -1,5 +1,8 @@
 #include "quadratic_sieve.hpp"
-#include<iostream>
+
+#ifdef DEBUG
+#include "../utils/utils_print/print_stuff.hpp"
+#endif
 
 void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
 
@@ -14,25 +17,22 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
     unsigned short logMaxP2 = buildFactorBase(n, B, factorBase);
     unsigned long long numPrimes = factorBase.size();
 
-    /*std::cerr << std::endl << std::endl << factorBase.size() << std::endl << std::endl;
-    for(auto coppia : factorBase){
-        std::cerr << coppia.first << std::endl;
-    }*/
+    #ifdef DEBUG
+    printFactorBase(factorBase);
+    #endif
 
 
     // inizializzare sieve
-    std::/*unordered_*/map<mpz_class, elemSetaccio> setaccio;
+    std::unordered_map<mpz_class, elemSetaccio> setaccio;
     // il setaccio sarà indicizzato da a=1..., con a=x-floor(sqrt(n)) --> y(x)=(a+base)^2 - n
     mpz_class base = sqrt(n) + 1;
     initializeSieve(n, base, L, factorBase, setaccio);
 
-    for (auto i = setaccio.begin(); i != setaccio.end(); i++){
-        std::cerr << i->first + base << ":\n\t";
-        for(auto j = i->second.begin(); j != i->second.end(); j++){
-            std::cerr << "[" << j->first << ", " << (double(j->second) / (1<<6)) << "]  ";
-        }
-        std::cerr << "\n";
-    }
+    #ifdef DEBUG
+    printSetaccio(setaccio, base);
+    #endif
+
+
 
     // controllare che il setaccio sia stato inizializzato correttamente
 
@@ -65,7 +65,7 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
 
 
 
-void initializeSieve(mpz_class& n, mpz_class& base, mpz_class& L, std::vector<std::pair<mpz_class, unsigned short>>& factorBase, std::/*unordered_*/map<mpz_class, elemSetaccio>& setaccio){
+void initializeSieve(mpz_class& n, mpz_class& base, mpz_class& L, std::vector<std::pair<mpz_class, unsigned short>>& factorBase, std::unordered_map<mpz_class, elemSetaccio>& setaccio){
     // il setaccio sarà indicizzato da a=1..., con a=x-floor(sqrt(n)) --> y(x)=(a+base)^2 - n
 
     mpz_class p, Pot, Pot_, a, tmp1, tmp2, tmp3;

@@ -10,7 +10,6 @@
 #include <tuple>
 #include <vector>
 #include <unordered_map>
-#include<map>
 #include <forward_list>
 #include "../utils/utils_mpz/hash_mpz.hpp"
 #include "../utils/utils_mpz/mpz_ull.hpp"
@@ -22,7 +21,7 @@ void quadratic_sieve(mpz_class&, mpz_class&, mpz_class&);
 
 void choose_params(mpz_class&, mpz_class&, mpz_class&);
 unsigned short buildFactorBase(mpz_class&, mpz_class&, std::vector<std::pair<mpz_class, unsigned short>>&);
-void initializeSieve(mpz_class&, mpz_class&, mpz_class&, std::vector<std::pair<mpz_class, unsigned short>>&, std::/*unordered_*/map<mpz_class, elemSetaccio>&);
+void initializeSieve(mpz_class&, mpz_class&, mpz_class&, std::vector<std::pair<mpz_class, unsigned short>>&, std::unordered_map<mpz_class, elemSetaccio>&);
 
 
 #endif
