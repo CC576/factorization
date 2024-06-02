@@ -9,6 +9,7 @@
 
 #include "../src/utils/utils_mpz/hash_mpz.hpp"
 #include "../src/utils/utils_mpz/mpz_ull.hpp"
+#include "../src/utils/utils_modP/roots_modP.hpp"
 
 
 TEST(Quadratic, NeqPQ) {

@@ -11,6 +11,7 @@
 
 #include "src/utils/utils_mpz/hash_mpz.hpp"
 #include "src/utils/utils_mpz/mpz_ull.hpp"
+#include "src/utils/utils_modP/roots_modP.hpp"
 
 #include "src/trial_div/trial_division.hpp"
 #include "src/fermat/fermat.hpp"
