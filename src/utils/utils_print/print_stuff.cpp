@@ -2,7 +2,7 @@
 
 
 
-void printFactorBase(std::vector<std::pair<mpz_class, unsigned short>>& F){
+void printFactorBase(std::unordered_map<mpz_class, unsigned short>& F){
     std::cerr << F.size() << std::endl << std::endl;
     for(auto coppia : F){
         std::cerr << "{" << coppia.first << ", " << coppia.second << "}," << std::endl;

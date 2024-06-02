@@ -16,7 +16,7 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
 
 
     // costruire factor base
-    std::vector<std::pair<mpz_class, unsigned short>> factorBase;
+    std::unordered_map<mpz_class, unsigned short> factorBase;
     unsigned short logMaxP2 = buildFactorBase(n, B, factorBase);
     unsigned long long numPrimes = factorBase.size();
 
@@ -38,7 +38,7 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
 
 
     // controllare che il setaccio sia stato inizializzato correttamente
-
+    // fatto con un test
 
 
 
@@ -68,7 +68,7 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
 
 
 
-void initializeSieve(const mpz_class& n, mpz_class& base, mpz_class& L, std::vector<std::pair<mpz_class, unsigned short>>& factorBase, std::unordered_map<mpz_class, elemSetaccio>& setaccio){
+void initializeSieve(const mpz_class& n, mpz_class& base, mpz_class& L, std::unordered_map<mpz_class, unsigned short>& factorBase, std::unordered_map<mpz_class, elemSetaccio>& setaccio){
     // il setaccio sarà indicizzato da a=1..., con a=x-floor(sqrt(n)) --> y(x)=(a+base)^2 - n
 
     mpz_class p, Pot, Pot_, a, tmp1, tmp2, tmp3;
@@ -76,8 +76,9 @@ void initializeSieve(const mpz_class& n, mpz_class& base, mpz_class& L, std::vec
     for(auto& coppia : factorBase){
         p = coppia.first;
         unsigned short l = coppia.second;
-
+        //std::cerr << p << " " << l << std::endl;
         if(p == 2){
+            roots.resize(0);
             roots.push_back(1); // assumo che n sia dispari
         } else{
             roots.resize(0);
@@ -149,7 +150,7 @@ void insertRoots(std::vector<mpz_class>& roots, mpz_class& base, mpz_class& P, s
 
 
 
-unsigned short buildFactorBase(mpz_class& n, mpz_class& B, std::vector<std::pair<mpz_class, unsigned short>>& factorBase){
+unsigned short buildFactorBase(mpz_class& n, mpz_class& B, std::unordered_map<mpz_class, unsigned short>& factorBase){
     // effettua anche controllo simbolo di Legendre, che per versione MPQS va spostato nell'inizializzazione del sieve
     mpz_class tmp;
     unsigned long long b = mpz_2_ull(B, tmp);  // sto assumendo che B sia < 2^64 e che possa stare in un long long
@@ -173,7 +174,7 @@ unsigned short buildFactorBase(mpz_class& n, mpz_class& B, std::vector<std::pair
         double log2pD = log2(double(p));
         unsigned short log2p = (unsigned short) (log2pD * (1<<6));
 
-        factorBase.push_back(std::make_pair(tmp, log2p));
+        factorBase[tmp] = log2p;
 
         logMaxP = std::max(logMaxP, log2p);
     }

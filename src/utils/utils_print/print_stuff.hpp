@@ -16,7 +16,7 @@
 
 typedef std::forward_list<std::pair<mpz_class, unsigned short>> elemSetaccio;
 
-void printFactorBase(std::vector<std::pair<mpz_class, unsigned short>>&);
+void printFactorBase(std::unordered_map<mpz_class, unsigned short>&);
 void printSetaccio(std::unordered_map<mpz_class, elemSetaccio>&, mpz_class&);
 
 #endif

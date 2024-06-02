@@ -6,6 +6,7 @@
 #include <gmpxx.h>
 #include <tuple>
 #include <vector>
+#include <algorithm>
 
 #include "../src/utils/utils_mpz/hash_mpz.hpp"
 #include "../src/utils/utils_mpz/mpz_ull.hpp"
@@ -28,7 +29,7 @@ TEST(Quadratic, factorBase){
   mpz_class n, B;
   n = "5137851827";
   B = 383;
-  std::vector<std::pair<mpz_class, unsigned short>> factorBase;
+  std::unordered_map<mpz_class, unsigned short> factorBase;
   buildFactorBase(n, B, factorBase);
 
   ASSERT_GT(factorBase.size(), 2);
@@ -52,7 +53,7 @@ TEST(Quadratic, factorBase){
     primi1.push_back(p);
   }
 
-  //ASSERT_THAT(primi1, ContainerEq(primi2));
+  sort(primi1.begin(), primi1.end());
   ASSERT_EQ(primi1, primi2);
 }
 
@@ -77,7 +78,7 @@ TEST(Quadratic, initializedSive){
 
   mpz_class base = sqrt(n) + 1;
 
-  std::vector<std::pair<mpz_class, unsigned short>> factorBase = {
+  std::unordered_map<mpz_class, unsigned short> factorBase = {
     {2, 64},    {11, 221},  {13, 236},  {19, 271},  {23, 289},  {29, 310},  {37, 333},  {53, 366},  {71, 393},  {73, 396},
     {79, 403},  {83, 408},  {89, 414},  {103, 427}, {109, 433}, {113, 436}, {127, 447}, {131, 450}, {137, 454}, {157, 466},
     {167, 472}, {179, 478}, {181, 479}, {193, 485}, {197, 487}, {199, 488}, {211, 494}, {223, 499}, {271, 517}, {281, 520},
@@ -101,7 +102,7 @@ TEST(Quadratic, initializedSive){
 
     for(auto j = it->second.begin(); j != it->second.end(); j++){
       P = j->first;
-      EXPECT_EQ((baseSquaredMinusN + a*(twoBase+a))%P, 0) << P << "non divide y(" << a+base << ") = " << (baseSquaredMinusN + a*(twoBase+a))%P;
+      EXPECT_EQ((baseSquaredMinusN + a*(twoBase+a))%P, 0) << P << " non divide y(" << a+base << ") = " << (baseSquaredMinusN + a*(twoBase+a))%P;
 
       auto k = occorrenze.find(P);
       if(k == occorrenze.end()) occorrenze[P] = std::vector<mpz_class>{a};
@@ -113,23 +114,23 @@ TEST(Quadratic, initializedSive){
     P = it->first;
 
     if(P==2){
-      ASSERT_GT(it->second.size(), 0) << "non ci sono radici di n=" << n << "modulo 2" ;
-      ASSERT_LT(it->second.size(), 2) << "ci sono troppe radici di n=" << n << "modulo 2" ;
+      ASSERT_GT(it->second.size(), 0) << " non ci sono radici di n=" << n << "modulo 2" ;
+      ASSERT_LT(it->second.size(), 2) << " ci sono troppe radici di n=" << n << "modulo 2" ;
     } else if(mpz_even_p(P.get_mpz_t()) && P >= 8){
-      ASSERT_GT(it->second.size(), 3) << "non ci sono abbastanza radici di n=" << n << "modulo " << P ;
-      ASSERT_LT(it->second.size(), 5) << "ci sono troppe radici di n=" << n << "modulo " << P ;
+      ASSERT_GT(it->second.size(), 3) << " non ci sono abbastanza radici di n=" << n << "modulo " << P ;
+      ASSERT_LT(it->second.size(), 5) << " ci sono troppe radici di n=" << n << "modulo " << P ;
 
-      ASSERT_NE(((it->second)[0] - (it->second)[1])%P, 0) << "ci sono radici uguali di n=" << n << "modulo " << P;
-      ASSERT_NE(((it->second)[0] - (it->second)[2])%P, 0) << "ci sono radici uguali di n=" << n << "modulo " << P;
-      ASSERT_NE(((it->second)[0] - (it->second)[3])%P, 0) << "ci sono radici uguali di n=" << n << "modulo " << P;
-      ASSERT_NE(((it->second)[1] - (it->second)[2])%P, 0) << "ci sono radici uguali di n=" << n << "modulo " << P;
-      ASSERT_NE(((it->second)[1] - (it->second)[3])%P, 0) << "ci sono radici uguali di n=" << n << "modulo " << P;
-      ASSERT_NE(((it->second)[2] - (it->second)[3])%P, 0) << "ci sono radici uguali di n=" << n << "modulo " << P;
+      ASSERT_NE(((it->second)[0] - (it->second)[1])%P, 0) << " ci sono radici uguali di n=" << n << "modulo " << P;
+      ASSERT_NE(((it->second)[0] - (it->second)[2])%P, 0) << " ci sono radici uguali di n=" << n << "modulo " << P;
+      ASSERT_NE(((it->second)[0] - (it->second)[3])%P, 0) << " ci sono radici uguali di n=" << n << "modulo " << P;
+      ASSERT_NE(((it->second)[1] - (it->second)[2])%P, 0) << " ci sono radici uguali di n=" << n << "modulo " << P;
+      ASSERT_NE(((it->second)[1] - (it->second)[3])%P, 0) << " ci sono radici uguali di n=" << n << "modulo " << P;
+      ASSERT_NE(((it->second)[2] - (it->second)[3])%P, 0) << " ci sono radici uguali di n=" << n << "modulo " << P;
     } else{
-      ASSERT_GT(it->second.size(), 1) << "non ci sono abbastanza radici di n=" << n << "modulo " << P ;
-      ASSERT_LT(it->second.size(), 3) << "ci sono troppe radici di n=" << n << "modulo " << P ;
+      ASSERT_GT(it->second.size(), 1) << " non ci sono abbastanza radici di n=" << n << "modulo " << P ;
+      ASSERT_LT(it->second.size(), 3) << " ci sono troppe radici di n=" << n << "modulo " << P ;
 
-      ASSERT_NE(((it->second)[0] - (it->second)[1])%P, 0) << "ci sono radici uguali di n=" << n << "modulo " << P;
+      ASSERT_NE(((it->second)[0] - (it->second)[1])%P, 0) << " ci sono radici uguali di n=" << n << "modulo " << P;
     }
   }
 
