@@ -10,7 +10,10 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
     // B e magari approx lunghezza intervallo di sieving
     mpz_class B, L;
     choose_params(n, B, L);
-    //std::cerr << B << std::endl << std::endl;
+    #ifdef DEBUG
+    std::cerr << B << " " << L << std::endl << std::endl;
+    #endif
+
 
     // costruire factor base
     std::vector<std::pair<mpz_class, unsigned short>> factorBase;
@@ -186,7 +189,8 @@ void choose_params(mpz_class &n, mpz_class &B, mpz_class &L){
     // L = exp((logn loglogn)^(1/2)-(1/2)*loglogn), e controllare che sia almeno 100
 
     double logn = log(n.get_d()), loglogn = log(logn);
-    double b = exp((1/2.0 + 3/logn)*sqrt(logn * loglogn)), l = exp(sqrt(logn * loglogn) - (1/2.0)*loglogn); // scelto 3/logn come o(1)
+    double  b = exp((1/2.0 + 3/logn)*sqrt(logn * loglogn)),                     // scelto 3/logn come o(1)
+            l = exp((1.0 + 6/logn)*sqrt(logn * loglogn) - (1/2.0)*loglogn);     // qui usato il doppio perché c'è circa un fattore 2 di differenza
 
     B = b; L = l;
     if(B < 5) B=5;
