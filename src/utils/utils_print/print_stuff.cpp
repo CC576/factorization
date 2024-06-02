@@ -28,3 +28,16 @@ void printSetaccio(std::unordered_map<mpz_class, elemSetaccio>& S, mpz_class& ba
     }
     std::cerr << std::endl;
 }
+
+
+void printSmooths(std::vector<smoothElem> &smooths){
+    for(auto& coso : smooths){
+        std::cerr << coso.x << " " << coso.y << ":\n\t";
+        for(auto p : coso.primes){
+            std::cerr << p << " ";
+        }
+        std::cerr << std::endl;
+    }
+
+    std::cerr << "(Almost) smooth elements: " << smooths.size() << std::endl << std::endl;
+}

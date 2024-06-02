@@ -44,12 +44,27 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
 
     // attivare sieve
 
+        // durante il setaccio i primi/le potenze vengono aggiunti a un numero dal più grande al più piccolo (mentre si analizzano i numeri precedenti)
+        // --> se si inseriscono con push_front poi si ritrovano dal più piccolo al più grande (mentre si analizza quel numero)
 
+    std::vector<smoothElem> smooths;
+    unsigned long long missing = 0LL + numPrimes + mpz_sizeinbase(n.get_mpz_t(), 2), numEqs;
+    mpz_class a = -1;   // dato che nella funzione l'incremento avviene prima del resto, in questo modo il primo valore di a sarà 0
+    mpz_class baseSquaredMinusN = base*base - n, twoBase = base<<1;
 
+    numEqs = activateSieve(missing, logMaxP2, a, base, baseSquaredMinusN, twoBase, factorBase, setaccio, smooths);
 
+    #ifdef DEBUG
+    printSmooths(smooths);
+    #endif
 
     // preprocessing: calcolare exponent vectors, fare (o no) filtering, se non ci sono abbastanza smooth numbers tornare al sieving
-
+        // dato ogni numero in smooths:
+            // tirare via le potenze dei primi noti segnandosi quali sono quelli con esp dispari (in un qualche ordine)
+            // segnarsi ciò che rimane (se diverso da 1) come nuovo primo che compare con esp 1 (quindi segnarlo nell'exp vector ridotto) e aggiungerlo ad un set di nuovi primi
+        // se il numero di numeri trovati non supera numPrimes + numNewPrimes riprendere sieving, altrimenti si può ripulire il setaccio, ma segnandosi l'ultimo elem visto come nuova base
+        // fare un unico set con tutti i primi che hanno degli exp dispari, e per ognuno di questi ricavare la posizione ordinata,
+            // così da poter fare poi gli exponent vectors con le posizioni dei primi (notazione compatta per matrice densa)
 
 
 
@@ -63,6 +78,80 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
     // differenza quadrati: radici e gcd
 
 
+    // in caso di fail...
+
+}
+
+
+
+
+unsigned long long activateSieve(unsigned long long toFind, unsigned short maxLogp2, mpz_class& a, mpz_class& base, mpz_class& baseSquaredMinusN, mpz_class& twoBase,  std::unordered_map<mpz_class, unsigned short>& factorBase, std::unordered_map<mpz_class, elemSetaccio>& setaccio, std::vector<smoothElem>& smooths){   // il valore di ritorno è il numero di smooth trovati
+    mpz_class x, y, P;
+    unsigned long long found = 0;
+    unsigned short lastLog = 0;
+    elemSetaccio divisors;
+
+    while(found < toFind){
+        a++;                    // a era l'ultimo visto
+
+        auto it = setaccio.find(a);
+        if(it == setaccio.end()) continue;
+
+        // ora it->second dovrebbe essere la lista con potenze dei primi che dividono y(x(a)) e relativi logaritmi
+        divisors.swap(it->second);
+        setaccio.erase(it);
+
+        // ora divisors dovrebbe essere la lista con potenze dei primi che dividono y(x(a)) e relativi logaritmi
+
+        unsigned short sum_of_logs = 0, l = 0;
+        for(auto& coppia : divisors){
+            P = coppia.first;
+            l = coppia.second;
+
+            // passare avanti la potenza che divide y
+            auto j = setaccio.find(a + P);
+            if(j == setaccio.end()){
+                setaccio[a+P] = elemSetaccio{std::make_pair(P, l)};
+            } else{
+                j->second.push_front(std::make_pair(P, l));
+            }
+
+            // sommare i log
+            sum_of_logs += l;
+        }
+
+        if(sum_of_logs < lastLog){
+            divisors.clear();
+            continue;
+        }
+
+        y = baseSquaredMinusN + a*(twoBase + a);
+        double logyD = log2(y.get_d());
+        unsigned short logy = (unsigned short) (logyD * (1<<6));
+        // lastLog is < logy to allow inclusion of "large" prime    - da Wikiversity
+
+        lastLog = logy - maxLogp2;
+        if(sum_of_logs < lastLog){
+            divisors.clear();
+            continue;
+        }
+
+        // abbiamo un elemento probabilmente smooth, tranne per al più un large prime
+        found++;
+        smooths.push_back(smoothElem(a+base, y));
+        smoothElem & elem = smooths.back();
+
+        while(!divisors.empty()){
+            P = (divisors.front()).first;
+            divisors.pop_front();
+
+            if(factorBase.count(P)){    // userei contains ma c'è solo da c++20
+                elem.primes.push_front(P);
+            }
+        }
+    }
+
+    return found;
 }
 
 
