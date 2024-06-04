@@ -2,6 +2,7 @@
 
 #ifdef DEBUG
 #include "../utils/utils_print/print_stuff.hpp"
+#include <cassert>
 #endif
 
 void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
@@ -24,11 +25,11 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
     printFactorBase(factorBase);
     #endif
 
+    mpz_class base = sqrt(n) + 1;   // base per la prima volta che si usa il setaccio
 
     // inizializzare sieve
     std::unordered_map<mpz_class, elemSetaccio> setaccio;
     // il setaccio sarà indicizzato da a=1..., con a=x-floor(sqrt(n)) --> y(x)=(a+base)^2 - n
-    mpz_class base = sqrt(n) + 1;
     initializeSieve(n, base, L, factorBase, setaccio);
 
     #ifdef DEBUG
@@ -40,7 +41,7 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
     // controllare che il setaccio sia stato inizializzato correttamente
     // fatto con un test
 
-
+// da qui andrebbe tutto dentro a un loop che si ripete se il gcd trova solo divisori banali di n
 
     // attivare sieve
 
@@ -48,34 +49,164 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
         // --> se si inseriscono con push_front poi si ritrovano dal più piccolo al più grande (mentre si analizza quel numero)
 
     std::vector<smoothElem> smooths;
-    unsigned long long missing = 0LL + numPrimes + mpz_sizeinbase(n.get_mpz_t(), 2), numEqs;
+
     mpz_class a = -1;   // dato che nella funzione l'incremento avviene prima del resto, in questo modo il primo valore di a sarà 0
     mpz_class baseSquaredMinusN = base*base - n, twoBase = base<<1;
 
-    numEqs = activateSieve(missing, logMaxP2, a, base, baseSquaredMinusN, twoBase, factorBase, setaccio, smooths);
-
+    unsigned int  nbit = mpz_sizeinbase(n.get_mpz_t(), 2),      // int e non long long per blanczos
+                        threshold = std::max(64u, nbit>>1),
+                        toSearch = std::max(64u, nbit<<1),
+                        numNewPrimes = 0,
+                        numTotPrimes = numPrimes,               // conta tutti i primi della factor base (usati e non usati), più i large primes usati
+                        missing = 0 + numTotPrimes + nbit,
+                        numSmooths = 0;
+    unsigned long long entries = 0ULL;      // serve davvero?
+    unsigned short lastLog = 0;
     #ifdef DEBUG
-    printSmooths(smooths);
+    unsigned short iteration = 0;
     #endif
 
-    // preprocessing: calcolare exponent vectors, fare (o no) filtering, se non ci sono abbastanza smooth numbers tornare al sieving
-        // dato ogni numero in smooths:
-            // tirare via le potenze dei primi noti segnandosi quali sono quelli con esp dispari (in un qualche ordine)
-            // segnarsi ciò che rimane (se diverso da 1) come nuovo primo che compare con esp 1 (quindi segnarlo nell'exp vector ridotto) e aggiungerlo ad un set di nuovi primi
-        // se il numero di numeri trovati non supera numPrimes + numNewPrimes riprendere sieving, altrimenti si può ripulire il setaccio, ma segnandosi l'ultimo elem visto come nuova base
-        // fare un unico set con tutti i primi che hanno degli exp dispari, e per ognuno di questi ricavare la posizione ordinata,
-            // così da poter fare poi gli exponent vectors con le posizioni dei primi (notazione compatta per matrice densa)
+    std::unordered_map<mpz_class, uint32_t> usedPrimes;         // comprende solo i primi usati
+
+    do{
+        #ifdef DEBUG
+        std::cerr << "Iteration: " << iteration << std::endl;
+        std::cerr << "Threshold: " << threshold << std::endl;
+        std::cerr << "numTotPrimes: " << numTotPrimes << std::endl;
+        std::cerr << "numSmooths: " << numSmooths << std::endl;
+        std::cerr << std::endl;
+        //printSmooths(smooths);
+        #endif
+
+        missing = numTotPrimes + toSearch - numSmooths,         // potrebbe dare problemi questa sottrazione perché è unsigned, ma in teoria no perché toSearch >= treshold
+        numSmooths += activateSieve(missing, logMaxP2, a, base, baseSquaredMinusN, twoBase, factorBase, setaccio, smooths, lastLog);
+
+        // preprocessing: calcolare exponent vectors, fare (o no) filtering, se non ci sono abbastanza smooth numbers tornare al sieving
+            // dato ogni numero in smooths:
+                // tirare via le potenze dei primi noti segnandosi quali sono quelli con esp dispari (in un qualche ordine)
+                // segnarsi ciò che rimane (se diverso da 1) come nuovo primo che compare con esp 1 (quindi segnarlo nell'exp vector ridotto) e aggiungerlo ad un set di nuovi primi
+            // se il numero di numeri trovati non supera numPrimes + numNewPrimes riprendere sieving, altrimenti si può ripulire il setaccio, ma segnandosi l'ultimo elem visto come nuova base
+            // fare un unico set con tutti i primi che hanno degli exp dispari, e per ognuno di questi ricavare la posizione ordinata,
+                // così da poter fare poi gli exponent vectors con le posizioni dei primi (notazione compatta per matrice densa)
+            // non rimuovo i large primes che compaiono un'unica volta perché tanto se li tengo aggiungono sia un'incognita che un'equazione, quindi non cambia il numero di equazioni mancanti
+
+        std::forward_list<mpz_class> divisors;
+        for(unsigned i = numSmooths-missing; i < numSmooths; i++){  // bisogna solo scorrere i nuovi elementi aggiunti
+            auto& elem = smooths[i];
+            mpz_class y = elem.y;
+
+            while(!elem.primes.empty()){
+                mpz_class p = elem.primes.front();
+                elem.primes.pop_front();
+                unsigned int esp = mpz_remove(y.get_mpz_t(), y.get_mpz_t(), p.get_mpz_t());
+                if(esp%2){
+                    divisors.push_front(p);
+                    if(usedPrimes.count(p) == 0){
+                        uint32_t pos = usedPrimes.size();
+                        usedPrimes[p] = pos;
+                    }
+                    entries++;
+                }
+            }
+
+            if(y != 1){     // y contiene esattamente un large prime
+                divisors.push_front(y);
+                if(usedPrimes.count(y) == 0){    // abbiamo trovato un nuovo large prime (che in un certo senso estende la factor base)
+                    numNewPrimes++; // questo serve solo per statistiche in realtà
+                    numTotPrimes++;
+                    uint32_t pos = usedPrimes.size();
+                    usedPrimes[y] = pos;
+                }
+                entries++;
+            }
+
+            divisors.swap(elem.primes);     // ora elem.primes contiene solo i divisori primi con esponenete dispari,
+        }                                   // che risultano in ordine crescente a parte per il large prime che viene messo all'inizio
+
+        #ifdef DEBUG
+        iteration++;
+        #endif
+    } while(numSmooths < threshold + numTotPrimes);
+    setaccio.clear();   // ripulisco il setaccio per avere più spazio per l'algebra lineare
+
+    #ifdef DEBUG
+    std::cerr << "After " << iteration << " iteration(s):" << std::endl;
+    //printSmooths(smooths);
+    std::cerr << "Threshold: " << threshold << std::endl;
+    std::cerr << "numTotPrimes: " << numTotPrimes << std::endl;
+    std::cerr << "numSmooths: " << numSmooths << std::endl;
+    std::cerr << "Number of iterations: " << iteration << std::endl;
+    std::cerr << std::endl;
+    #endif
+
+    #ifdef DEBUG
+    std::cerr << "Total number of primes: " << usedPrimes.size() << std::endl << std::endl;
+    //printUsedPrimes(usedPrimes);
+    #endif
 
 
 
 
-    // algebra lineare
+    // algebra lineare, block lanczos
 
+    // la libreria restituisce fino a 64 vettori del nullspace, salvandoli in ncol interi a 64 bit
+        // credo che ogni intero rappresenti i 64 valori da dare alla corrispondente incognita nelle 64 soluzioni
+        // --> per iterare sulle 2^nsol soluzioni basta avere un contatore unsigned ll che va da 1 (!!!non da 0!!!) a 2^nsol-1 e fare & con ciascun intero (sepratamente)
+        //      e guardare la parità del numero di bit accesi
 
+    // nrow = usedPrimes.size(), ncol = numSmooths,
+        // ovvero sulle righe ci sono i primi, sulle colonne i numeri smooth;
+        // un'equazione è la somma degli esponenti mod 2 di un primo sui vari smooth,
+        // una soluzione indica quali smooth usare per rendere ogni equazione 0
+
+    std::vector<uint32_t> mat;
+    mat.reserve(entries<<1);
+    uint64_t entries2 = getMatrix(smooths, mat, usedPrimes);
+    #ifdef DEBUG
+    std::cerr << "Number of entries: " << entries << " =? " << entries2 << std::endl;
+    assert(entries == entries2);
+    std::cerr << std::endl;
+    #endif
+
+    std::vector<uint64_t> result;
+    result.reserve(numSmooths);
+    uint32_t Nsol = blanczos(mat.data(), entries, usedPrimes.size(), numSmooths, result.data());
+    #ifdef DEBUG
+    std::cerr << Nsol << std::endl;
+    #endif
 
 
 
     // differenza quadrati: radici e gcd
+    uint64_t totSol = (1ull<<(Nsol -1ull)) - 1ull;      // un po' sus ma dovrebbe andare
+    totSol = (totSol<<1ull) + 1ull;
+    #ifdef DEBUG
+    std::cerr << totSol << std::endl;
+    std::cerr << std::endl;
+    #endif
+
+    mpz_class X, Y, Ysquared;
+    for(uint64_t mask = 1ull; mask < totSol; mask++){
+        X = Ysquared = 1;
+        for(uint32_t i = 0u; i < numSmooths; i++){
+            //uint32_t val = mask & result[i];
+            //std::bitset<64> val (mask & result[i]);
+            bool taken = ((std::bitset<64> (mask & result[i]).count() % 2) == 1);
+            if(taken){
+                X *= smooths[i].x;
+                Ysquared *= smooths[i].y;
+            }
+        }
+
+        Y = sqrt(Ysquared);
+        fattore1 = abs(gcd(n, X-Y));
+        fattore2 = abs(gcd(n, X+Y));
+        if(fattore1 == n) fattore1 = n/fattore2;   // potrebbero essere n e q --> vogliamo p e q
+        if(fattore2 == n) fattore2 = n/fattore1;   // potrebbero essere p ed n --> vogliamo p e q
+        if(fattore1 != 1 && fattore2 != 1) return;  // se sono entrambi diversi da 1 sono anche entrambi diversi da n
+
+    }
+
 
 
     // in caso di fail...
@@ -83,12 +214,35 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
 }
 
 
+unsigned long long getMatrix(std::vector<smoothElem>& smooths, std::vector<uint32_t>& B, std::unordered_map<mpz_class, uint32_t>& primes){   // restituisce il numero di entries
+    // dopo questa funzione le liste dei fattori di ogni smooth saranno vuote
+    // B deve avere già abbastanza spazio --> usare reserve
+
+    unsigned long long entries = 0ULL;
+    uint32_t n = smooths.size();
 
 
-unsigned long long activateSieve(unsigned long long toFind, unsigned short maxLogp2, mpz_class& a, mpz_class& base, mpz_class& baseSquaredMinusN, mpz_class& twoBase,  std::unordered_map<mpz_class, unsigned short>& factorBase, std::unordered_map<mpz_class, elemSetaccio>& setaccio, std::vector<smoothElem>& smooths){   // il valore di ritorno è il numero di smooth trovati
+    for(uint32_t i = 0u; i < n; i++){
+        auto& elem = smooths[i];
+        while(!elem.primes.empty()){
+            B.push_back(primes[elem.primes.front()]);    // la riga è l'indice del primo
+            B.push_back(i);                        // la colonna è l'indice del numero smooth
+            elem.primes.pop_front();
+
+            entries++;
+        }
+
+    }
+    return entries;
+}
+
+
+
+unsigned long long activateSieve(unsigned long long toFind, unsigned short maxLogp2, mpz_class& a, mpz_class& base, mpz_class& baseSquaredMinusN, mpz_class& twoBase,  std::unordered_map<mpz_class, unsigned short>& factorBase, std::unordered_map<mpz_class, elemSetaccio>& setaccio, std::vector<smoothElem>& smooths, unsigned short& lastLog){   // il valore di ritorno è il numero di smooth trovati
+    // alla fine a conterrà l'ultimo elemento ispezionato --> i setacci dopo possono ripartire da a
     mpz_class x, y, P;
     unsigned long long found = 0;
-    unsigned short lastLog = 0;
+
     elemSetaccio divisors;
 
     while(found < toFind){

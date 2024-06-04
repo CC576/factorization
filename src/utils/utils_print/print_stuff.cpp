@@ -41,3 +41,20 @@ void printSmooths(std::vector<smoothElem> &smooths){
 
     std::cerr << "(Almost) smooth elements: " << smooths.size() << std::endl << std::endl;
 }
+
+
+
+void printUsedPrimes(std::unordered_map<mpz_class, uint32_t> & S){
+    std::set<mpz_class> orderedS;
+
+    for (auto& i : S){
+        orderedS.insert(i.first);
+    }
+
+    std::cerr << "Total number of primes: " << S.size() << " = " << orderedS.size() << std::endl;
+    std::cerr << "Used primes: \n";
+    for (auto i : orderedS){
+        std::cerr << i << " ";
+    }
+    std::cerr << std::endl << std::endl;;
+}

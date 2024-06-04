@@ -136,13 +136,32 @@ TEST(Quadratic, initializedSive){
 
 }
 
+// to-do
+/*TEST(Quadratic, sieveOutput1){  // controlla activate sieve
+  // controllare che x e y corrispondano,
+  // controllare che tutti i primi elencati dividano y,
+  // controllare che non ce ne siano altri della factor base che lo dividono
+  // e controllare che ciò che rimane dopo aver diviso è minore di B^2
+}*/
+
+// to-do
+/*TEST(Quadratic, sieveOutput2){  // controlla che l'intero processo di sieve sia corretto, ma devo ancora renderlo una funzione
+  // controllare che x e y corrispondano,
+  // controllare che tutti i primi elencati dividano y,
+  // controllare che non ce ne siano altri in assoluto che lo dividono,
+  // controllare che siano tutti nella factor base tranne uno
+  // e controllare che il maggiore sia minore di B^2
+}
+*/
+
+// test per blanczos? O assumo che funzioni?
 
 
-/*TEST(Quadratic, bigInput) {
+TEST(Quadratic, bigInput) {
   mpz_class n;
   n = "2694510496740314556501037319858087";
   mpz_class p, q;
   quadratic_sieve(n, p, q);
 
   ASSERT_EQ(n, p*q);
-}*/
+}

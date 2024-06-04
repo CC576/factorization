@@ -11,6 +11,7 @@
 #include <vector>
 #include <unordered_map>
 #include <map>
+#include <set>
 #include <forward_list>
 //#include "../utils_mpz/hash_mpz.hpp"
 #include "../../quadratic_sieve/quadratic_sieve.hpp"
@@ -30,5 +31,6 @@ typedef struct smoothElem_{       // rischio di fare confusione con queste defin
 void printFactorBase(std::unordered_map<mpz_class, unsigned short>&);
 void printSetaccio(std::unordered_map<mpz_class, elemSetaccio>&, mpz_class&);
 void printSmooths(std::vector<smoothElem> &);
+void printUsedPrimes(std::unordered_map<mpz_class, uint32_t> &);
 
 #endif
