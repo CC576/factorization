@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 3.5.0)
 project(factoring_algorithms VERSION 0.1.0 LANGUAGES C CXX)
 
 # set C++ flags
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wpedantic")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=address -DDEBUG")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
