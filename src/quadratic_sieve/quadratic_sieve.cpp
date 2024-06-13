@@ -98,20 +98,40 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
                 // così da poter fare poi gli exponent vectors con le posizioni dei primi (notazione compatta per matrice densa)
             // non rimuovo i large primes che compaiono un'unica volta perché tanto se li tengo aggiungono sia un'incognita che un'equazione, quindi non cambia il numero di equazioni mancanti
 
-        elemSetaccio divisors;
+        //elemSetaccio divisors;
         //std::cerr << numSmooths - missing << " " << numSmooths << std::endl;
         for(unsigned i = numSmooths-missing; i < numSmooths; i++){  // bisogna solo scorrere i nuovi elementi aggiunti
             unsigned int count = 0u;
             auto& elem = smooths[i];
             mpz_class y = elem.y;
 
-            while(!elem.primes.empty()){
+            auto it1 = elem.primes.before_begin(), it2 = it1;
+            it2++;
+            while(it2 != elem.primes.end()){
+                mpz_class p = it2->first;
+
+                unsigned int esp = mpz_remove(y.get_mpz_t(), y.get_mpz_t(), p.get_mpz_t());
+                if(esp%2){
+                    //divisors.push_front({p, 0});
+                    //divisors.push_back({p, (short unsigned) 0});
+                    if(usedPrimes.count(p) == 0){
+                        uint32_t pos = usedPrimes.size();
+                        usedPrimes[p] = pos;
+                    }
+                    entries++;
+                    count++;
+
+                    it1++; it2++;
+                } else{
+                    it2 = elem.primes.erase_after(it1);     // it1 resta un iteratore valido
+                }
+            }
+
+            /*while(!elem.primes.empty()){
                 mpz_class p = elem.primes.front().first;
                 elem.primes.pop_front();
                 //mpz_class p = elem.primes.back().first;
                 //elem.primes.pop_back();
-                //if(i==0) std::cerr<< p <<" ";
-                //if(std::find(divisors.begin(), divisors.end(), std::make_pair(p, (short unsigned) 0)) != divisors.end()) std::cerr<<"errore"<<std::endl;
                 unsigned int esp = mpz_remove(y.get_mpz_t(), y.get_mpz_t(), p.get_mpz_t());
                 if(esp%2){
                     divisors.push_front({p, 0});
@@ -123,10 +143,11 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
                     entries++;
                     count++;
                 }
-            }
+            }*/
 
             if(y != 1){     // y contiene esattamente un large prime
-                divisors.push_front({y, 0});
+                elem.primes.push_front({y, 0});
+                //divisors.push_front({y, 0});
                 //divisors.push_back({y, (short unsigned) 0});
                 if(usedPrimes.count(y) == 0){    // abbiamo trovato un nuovo large prime (che in un certo senso estende la factor base)
                     numNewPrimes++; // questo serve solo per statistiche in realtà
@@ -149,7 +170,7 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
                 if(fattore1 != 1 && fattore2 != 1) return;  // se sono entrambi diversi da 1 sono anche entrambi diversi da n
 
             }
-            divisors.swap(elem.primes);     // ora elem.primes contiene solo i divisori primi con esponenete dispari,
+            //divisors.swap(elem.primes);     // ora elem.primes contiene solo i divisori primi con esponenete dispari,
         }                                   // che risultano in ordine crescente a parte per il large prime che viene messo all'inizio
 
         #ifdef DEBUG
