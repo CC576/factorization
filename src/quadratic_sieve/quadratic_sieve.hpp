@@ -19,6 +19,7 @@
 #include "../utils/utils_modP/roots_modP.hpp"
 
 typedef std::forward_list<std::pair<mpz_class, unsigned short>> elemSetaccio;   // scelta infelice per questo nome, sarebbe più corretto valueSetaccio
+//typedef std::vector<std::pair<mpz_class, unsigned short>> elemSetaccio;
 struct smoothElem{
   mpz_class x;
   mpz_class y;
@@ -27,6 +28,7 @@ struct smoothElem{
   smoothElem(mpz_class x_, mpz_class y_){
     x = x_; y = y_;
     primes = std::forward_list<std::pair<mpz_class, unsigned short>>();
+    //primes = std::vector<std::pair<mpz_class, unsigned short>>(0);
   }
 };
 

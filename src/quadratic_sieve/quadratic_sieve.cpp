@@ -5,6 +5,8 @@
 #include <cassert>
 #endif
 #include<iostream>
+//#include <cassert>
+//#include<algorithm>
 
 void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
 
@@ -97,6 +99,7 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
             // non rimuovo i large primes che compaiono un'unica volta perché tanto se li tengo aggiungono sia un'incognita che un'equazione, quindi non cambia il numero di equazioni mancanti
 
         elemSetaccio divisors;
+        //std::cerr << numSmooths - missing << " " << numSmooths << std::endl;
         for(unsigned i = numSmooths-missing; i < numSmooths; i++){  // bisogna solo scorrere i nuovi elementi aggiunti
             unsigned int count = 0u;
             auto& elem = smooths[i];
@@ -105,9 +108,14 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
             while(!elem.primes.empty()){
                 mpz_class p = elem.primes.front().first;
                 elem.primes.pop_front();
+                //mpz_class p = elem.primes.back().first;
+                //elem.primes.pop_back();
+                //if(i==0) std::cerr<< p <<" ";
+                //if(std::find(divisors.begin(), divisors.end(), std::make_pair(p, (short unsigned) 0)) != divisors.end()) std::cerr<<"errore"<<std::endl;
                 unsigned int esp = mpz_remove(y.get_mpz_t(), y.get_mpz_t(), p.get_mpz_t());
                 if(esp%2){
                     divisors.push_front({p, 0});
+                    //divisors.push_back({p, (short unsigned) 0});
                     if(usedPrimes.count(p) == 0){
                         uint32_t pos = usedPrimes.size();
                         usedPrimes[p] = pos;
@@ -119,6 +127,7 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
 
             if(y != 1){     // y contiene esattamente un large prime
                 divisors.push_front({y, 0});
+                //divisors.push_back({y, (short unsigned) 0});
                 if(usedPrimes.count(y) == 0){    // abbiamo trovato un nuovo large prime (che in un certo senso estende la factor base)
                     numNewPrimes++; // questo serve solo per statistiche in realtà
                     numTotPrimes++;
@@ -188,6 +197,7 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
     std::cerr << "Number of entries: " << entries << " =? " << entries2 << std::endl;
     assert(entries == entries2);
     std::cerr << std::endl;
+    assert(entries == entries2);
     #endif
 
     std::vector<uint64_t> result;
@@ -208,7 +218,7 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
     std::cerr << totSol << std::endl;
     std::cerr << std::endl;
     #endif
-    std::cerr<<"here5"<<std::endl;
+    std::cerr<<"here5" << " " << Nsol <<std::endl;
 
     mpz_class X, Y, Ysquared;
     for(uint64_t mask = 1ull; mask < totSol; mask++){
@@ -252,8 +262,10 @@ unsigned long long getMatrix(std::vector<smoothElem>& smooths, std::vector<uint3
         auto& elem = smooths[i];
         while(!elem.primes.empty()){
             B.push_back(primes[elem.primes.front().first]);    // la riga è l'indice del primo
+            //B.push_back(primes[elem.primes.back().first]);
             B.push_back(i);                        // la colonna è l'indice del numero smooth
             elem.primes.pop_front();
+            //elem.primes.pop_back();
 
             entries++;
         }
@@ -291,11 +303,13 @@ unsigned long long activateSieve(unsigned long long toFind, unsigned short maxLo
             // passare avanti la potenza che divide y
             /*auto j = setaccio.find(a + P);
             if(j == setaccio.end()){
-                setaccio[a+P] = elemSetaccio{std::make_pair(P, l)};
+                //setaccio[a+P].reserve(100);
+                //setaccio[a+P] = elemSetaccio{std::make_pair(P, l)};
             } else{
                 j->second.push_front(std::make_pair(P, l));
             }*/
-            setaccio[a+P].push_front(std::make_pair(P, l));
+            setaccio[a+P].push_front(std::make_pair(P, l));   // se lista
+            //setaccio[a+P].push_back(std::make_pair(P, l));      // se vector --> le potenze più grandi sono davanti
 
             // sommare i log
             sum_of_logs += l;
@@ -324,7 +338,7 @@ unsigned long long activateSieve(unsigned long long toFind, unsigned short maxLo
 
 
         // durante il setaccio i primi/le potenze vengono aggiunti a un numero dal più grande al più piccolo (mentre si analizzano i numeri precedenti)
-        // --> se si inseriscono con push_front poi si ritrovano dal più piccolo al più grande (mentre si analizza quel numero)
+        // --> se si inseriscono con push_front poi si ritrovano dal più piccolo al più grande (mentre si analizza quel numero) (con push_back avviene al contrario)
         // --> si trovano prima i primi, poi le loro potenze; questa è un'assunzione fondamentale!!!
         /*while(!divisors.empty()){
             P = (divisors.front()).first;
@@ -418,6 +432,7 @@ void insertRoots(std::vector<mpz_class>& roots, mpz_class& base, mpz_class& P, s
             setaccio[a] = elemSetaccio{std::make_pair(P, l)};
         }else{
             it->second.push_front(std::make_pair(P, l));
+            //it->second.push_back(std::make_pair(P, l));
         }
     }
 }
