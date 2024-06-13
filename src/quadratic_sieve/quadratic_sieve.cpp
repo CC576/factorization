@@ -29,11 +29,16 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
     #endif
     std::cerr<<"here1"<<std::endl;
 
-    mpz_class base = sqrt(n) + 1;   // base per la prima volta che si usa il setaccio
+    mpz_class base = sqrt(n) + 1;   // base per la prima volta che si usa il setaccio, = primo elemento da analizzare
 
     // inizializzare sieve
     std::unordered_map<mpz_class, elemSetaccio> setaccio;
     // il setaccio sarà indicizzato da a=1..., con a=x-floor(sqrt(n)) --> y(x)=(a+base)^2 - n
+
+
+// da qui andrebbe tutto dentro a un loop che si ripete se il gcd trova solo divisori banali di n
+    for(int iterazioniEsterne = 0; iterazioniEsterne<10; iterazioniEsterne++){
+
     initializeSieve(n, base, L, factorBase, setaccio);
 
     #ifdef DEBUG
@@ -42,11 +47,9 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
     std::cerr<<"here2"<<std::endl;
 
 
-
     // controllare che il setaccio sia stato inizializzato correttamente
     // fatto con un test
 
-// da qui andrebbe tutto dentro a un loop che si ripete se il gcd trova solo divisori banali di n
 
     // attivare sieve
 
@@ -238,6 +241,7 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
     #ifdef DEBUG
     std::cerr << totSol << std::endl;
     std::cerr << std::endl;
+    if(Nsol == 0) std::cerr << "Warning: 0 solutions were found" << std::endl;
     #endif
     std::cerr<<"here5" << " " << Nsol <<std::endl;
 
@@ -259,15 +263,19 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
         fattore2 = abs(gcd(n, X+Y));
         if(fattore1 == n) fattore1 = n/fattore2;   // potrebbero essere n e q --> vogliamo p e q
         if(fattore2 == n) fattore2 = n/fattore1;   // potrebbero essere p ed n --> vogliamo p e q
-        if(fattore1 != 1 && fattore2 != 1) return;  // se sono entrambi diversi da 1 sono anche entrambi diversi da n
+        if(fattore1 != 1 && fattore2 != 1) return;  // adesso se sono entrambi diversi da 1 sono anche entrambi diversi da n
 
     }
-    std::cerr<<"here6"<<std::endl;
-
 
 
     // in caso di fail...
+    std::cerr<<"here6"<<std::endl;
 
+    base = a+1;                     // primo elemento da visitare in caso di fail = ultimo visitato +1
+    }
+
+    std::cerr<<"here7"<<std::endl;
+    std::cerr<<"Something went wrong"<<std::endl;
 }
 
 
