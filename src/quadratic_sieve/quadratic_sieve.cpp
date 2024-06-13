@@ -464,8 +464,8 @@ void choose_params(mpz_class &n, mpz_class &B, mpz_class &L){
     // L = exp((logn loglogn)^(1/2)-(1/2)*loglogn), e controllare che sia almeno 100
 
     double logn = log(n.get_d()), loglogn = log(logn);
-    double  b = exp((1/2.0 + 0/n.get_d())*sqrt(logn * loglogn)),                     // scelto 9/logn come o(1) (usando 3/logn ci mette più del doppio su un input a 112 bit)
-            l = exp((1.0 + 3/logn)*sqrt(logn * loglogn) - (1/2.0)*loglogn);     // qui usato la metà per non prendere troppe potenze, che tanto vengono già coperte dal margine per il large prime
+    double  b = exp((1/2.0 + 100/n.get_d())*sqrt(logn * loglogn)),                     // scelto 100/n come o(1)
+            l = exp((1.0 + 10/n.get_d())*sqrt(logn * loglogn) - (1/2.0)*loglogn);     // qui usato un decimo per non prendere troppe potenze, che tanto vengono già coperte dal margine per il large prime
 
     B = b; L = l;
     if(B < 5) B=5;
