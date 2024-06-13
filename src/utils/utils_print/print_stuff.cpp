@@ -34,7 +34,7 @@ void printSmooths(std::vector<smoothElem> &smooths){
     for(auto& coso : smooths){
         std::cerr << coso.x << " " << coso.y << ":\n\t";
         for(auto p : coso.primes){
-            std::cerr << p << " ";
+            std::cerr << p.first << " ";
         }
         std::cerr << std::endl;
     }
