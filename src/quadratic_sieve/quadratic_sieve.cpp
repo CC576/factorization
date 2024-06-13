@@ -165,6 +165,9 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
                 count++;
             }
             if(count == 0){ // y è un quadrato
+                #ifdef DEBUG
+                std::cerr << "Found a perfect square" << std::endl;
+                #endif
                 mpz_class Y = sqrt(elem.y), X = elem.x;
                 fattore1 = abs(gcd(n, X-Y));                // questo pezzo deve diventare una funzione
                 fattore2 = abs(gcd(n, X+Y));
@@ -314,6 +317,7 @@ unsigned long long activateSieve(unsigned long long toFind, unsigned short maxLo
 
     while(found < toFind){
         a++;                    // a era l'ultimo visto
+        //std::cerr<<a<<std::endl;
 
         auto it = setaccio.find(a);
         if(it == setaccio.end()) continue;
@@ -354,7 +358,9 @@ unsigned long long activateSieve(unsigned long long toFind, unsigned short maxLo
         unsigned short logy = (unsigned short) (logyD * (1<<6));
         // lastLog is < logy to allow inclusion of "large" prime    - da Wikiversity
 
-        lastLog = logy - maxLogp2;
+        if(logy > maxLogp2){
+            lastLog = logy - maxLogp2;
+        }
         if(sum_of_logs < lastLog){
             divisors.clear();
             continue;
@@ -362,6 +368,7 @@ unsigned long long activateSieve(unsigned long long toFind, unsigned short maxLo
 
         // abbiamo un elemento probabilmente smooth, tranne per al più un large prime
         found++;
+        //std::cerr<<"found one"<<std::endl;
         smooths.push_back(smoothElem(a+base, y));   // x = a+base, y = x^2-n
         smoothElem & elem = smooths.back();
 
@@ -500,8 +507,8 @@ unsigned short buildFactorBase(mpz_class& n, mpz_class& B, std::unordered_map<mp
 
         logMaxP = std::max(logMaxP, log2p);
     }
-    return (logMaxP << 1) - (1<<6);     // considero large primes solo fino a (maxP^2)/2 per perdere meno tempo su numeri con fattori che non ricompariranno
-}                                           // ma in realtà non dà miglioramenti significativi
+    return (logMaxP << 1); //- 0*(1<<6);     // considero large primes solo fino a (maxP^2)/2 per perdere meno tempo su numeri con fattori che non ricompariranno
+}                                           // ma in realtà non dà miglioramenti significativi - cosa fare? Rimetto B^2
 
 
 
@@ -516,6 +523,6 @@ void choose_params(mpz_class &n, mpz_class &B, mpz_class &L){
             l = exp((1.0 + 10/n.get_d())*sqrt(logn * loglogn) - (1/2.0)*loglogn);     // qui usato un decimo per non prendere troppe potenze, che tanto vengono già coperte dal margine per il large prime
 
     B = b; L = l;
-    if(B < 5) B=5;
-    if(L < 100) L=100;
+    if(B < 50) B=50;
+    if(L < 1000) L=1000;
 }
