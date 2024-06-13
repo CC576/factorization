@@ -3,8 +3,8 @@
 #ifdef DEBUG
 #include "../utils/utils_print/print_stuff.hpp"
 #include <cassert>
-#endif
 #include<iostream>
+#endif
 //#include <cassert>
 //#include<algorithm>
 
@@ -17,7 +17,7 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
     #ifdef DEBUG
     std::cerr << B << " " << L << std::endl << std::endl;
     #endif
-    std::cerr<<"here0 "<< B << std::endl;
+    //std::cerr<<"here0 "<< B << std::endl;
 
     // costruire factor base
     std::unordered_map<mpz_class, unsigned short> factorBase;
@@ -27,7 +27,7 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
     #ifdef DEBUG
     printFactorBase(factorBase);
     #endif
-    std::cerr<<"here1"<<std::endl;
+    //std::cerr<<"here1"<<std::endl;
 
     mpz_class base = sqrt(n) + 1;   // base per la prima volta che si usa il setaccio, = primo elemento da analizzare
 
@@ -44,7 +44,7 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
     #ifdef DEBUG
     printSetaccio(setaccio, base);
     #endif
-    std::cerr<<"here2"<<std::endl;
+    //std::cerr<<"here2"<<std::endl;
 
 
     // controllare che il setaccio sia stato inizializzato correttamente
@@ -87,7 +87,7 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
         std::cerr << std::endl;
         //printSmooths(smooths);
         #endif
-        std::cerr<<"hereI"<<std::endl;
+        //std::cerr<<"hereI"<<std::endl;
 
         missing = numTotPrimes + toSearch - numSmooths,         // potrebbe dare problemi questa sottrazione perché è unsigned, ma in teoria no perché toSearch >= treshold
         numSmooths += activateSieve(missing, logMaxP2, a, base, baseSquaredMinusN, twoBase, /*factorBase,*/ setaccio, smooths, lastLog);
@@ -197,7 +197,7 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
     std::cerr << "Total number of primes: " << usedPrimes.size() << std::endl << std::endl;
     //printUsedPrimes(usedPrimes);
     #endif
-    std::cerr<<"here3"<<std::endl;
+    //std::cerr<<"here3"<<std::endl;
 
 
 
@@ -230,7 +230,7 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
     #ifdef DEBUG
     std::cerr << Nsol << std::endl;
     #endif
-    std::cerr<<"here4"<<std::endl;
+    //std::cerr<<"here4"<<std::endl;
 
 
 
@@ -243,7 +243,7 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
     std::cerr << std::endl;
     if(Nsol == 0) std::cerr << "Warning: 0 solutions were found" << std::endl;
     #endif
-    std::cerr<<"here5" << " " << Nsol <<std::endl;
+    //std::cerr<<"here5" << " " << Nsol <<std::endl;
 
     mpz_class X, Y, Ysquared;
     for(uint64_t mask = 1ull; mask < totSol; mask++){
@@ -269,13 +269,13 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
 
 
     // in caso di fail...
-    std::cerr<<"here6"<<std::endl;
+    //std::cerr<<"here6"<<std::endl;
 
     base = a+1;                     // primo elemento da visitare in caso di fail = ultimo visitato +1
     }
 
-    std::cerr<<"here7"<<std::endl;
-    std::cerr<<"Something went wrong"<<std::endl;
+    //std::cerr<<"here7"<<std::endl;
+    //std::cerr<<"Something went wrong"<<std::endl;
 }
 
 
