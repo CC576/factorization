@@ -18,7 +18,7 @@ link_directories(${EXTERNAL_INSTALL_LOCATION}/lib)
 # Block Lanczos
 ExternalProject_Add(extern-blanczos
     GIT_REPOSITORY https://github.com/SebWouters/blanczos
-    PATCH_COMMAND bash -c "if ! grep -q PATCHED CMakeLists.txt$<SEMICOLON> then printf \"# PATCHED\\ninstall(TARGETS blanczos-shared)\\ninstall(FILES src/blanczos.h DESTINATION include)\\n\" >> CMakeLists.txt$<SEMICOLON> fi"
+    PATCH_COMMAND bash -c "if ! grep -q PATCHED CMakeLists.txt$<SEMICOLON> then printf \"# PATCHED\\ninstall(TARGETS blanczos-shared)\\ninstall(FILES src/blanczos.h DESTINATION include)\\n\" >> CMakeLists.txt$<SEMICOLON> sed -i \"s\/std::cout\/$<SEMICOLON>\\\\/\\\\/std::cout/g\" src/blanczos.cpp$<SEMICOLON> fi"
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION}
 )
 
