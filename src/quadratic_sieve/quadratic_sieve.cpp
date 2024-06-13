@@ -37,7 +37,7 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
     initializeSieve(n, base, L, factorBase, setaccio);
 
     #ifdef DEBUG
-    //printSetaccio(setaccio, base);
+    printSetaccio(setaccio, base);
     #endif
     std::cerr<<"here2"<<std::endl;
 
@@ -340,6 +340,7 @@ unsigned long long activateSieve(unsigned long long toFind, unsigned short maxLo
         // durante il setaccio i primi/le potenze vengono aggiunti a un numero dal più grande al più piccolo (mentre si analizzano i numeri precedenti)
         // --> se si inseriscono con push_front poi si ritrovano dal più piccolo al più grande (mentre si analizza quel numero) (con push_back avviene al contrario)
         // --> si trovano prima i primi, poi le loro potenze; questa è un'assunzione fondamentale!!!
+        // aggiustato initializeSieve per assicurarmi che ogni primo compaia prima delle potenze nelle varie liste
         /*while(!divisors.empty()){
             P = (divisors.front()).first;
             divisors.pop_front();
@@ -360,7 +361,7 @@ void initializeSieve(const mpz_class& n, mpz_class& base, mpz_class& L, std::uno
     // il setaccio sarà indicizzato da a=1..., con a=x-floor(sqrt(n)) --> y(x)=(a+base)^2 - n
 
     mpz_class p, Pot, Pot_, a, tmp1, tmp2, tmp3;
-    std::vector<mpz_class> roots;
+    std::vector<mpz_class> roots, roots1;
     for(auto& coppia : factorBase){
         p = coppia.first;
         unsigned short l = coppia.second;
@@ -376,7 +377,8 @@ void initializeSieve(const mpz_class& n, mpz_class& base, mpz_class& L, std::uno
             roots[1] = p-roots[0];
         }
 
-        insertRoots(roots, base, p, setaccio, a, l);
+        roots1 = roots;
+        //insertRoots(roots, base, p, setaccio, a, l);  // inserisco le radici mod p dopo quelle mod p^e per averle in cima alle forward list
 
 
         //potenze (ricordarsi che per p=2 c'è un'unica radice, per Pot = 4 ce ne sono 2 per quadrato, da Pot=8 in poi ogni quadrato ha  4 radici)
@@ -415,6 +417,8 @@ void initializeSieve(const mpz_class& n, mpz_class& base, mpz_class& L, std::uno
             Pot_ = Pot;
             Pot *= p;
         }
+
+        insertRoots(roots1, base, p, setaccio, a, l);
     }
 }
 
