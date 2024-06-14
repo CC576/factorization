@@ -24,7 +24,7 @@ int main(int argc, char** argv){
 
     if(argc < 3){
         std::cerr << "Usage: " << argv[0] << " <algorithm> <n>";
-        return -1;
+        return 1;
     }
 
     mpz_class n;
@@ -49,7 +49,7 @@ int main(int argc, char** argv){
 
     default:
         std::cerr << "Invalid algorithm " << alg << std::endl;
-        return -2;
+        return 2;
     }
 
     std::cout << "(" << p << ", " << q << ")" << std::endl;
