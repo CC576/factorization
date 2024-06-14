@@ -21,10 +21,17 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
 
     // costruire factor base
     std::unordered_map<mpz_class, unsigned short> factorBase;
-    unsigned short logMaxP2 = buildFactorBase(n, B, factorBase);
-    unsigned long long numPrimes = factorBase.size();
+    unsigned short logMaxP2; //= buildFactorBase(n, B, factorBase);
+    unsigned long long numPrimes; //= factorBase.size();
+
+    do{
+        B*=2; L*=2;
+        logMaxP2 = buildFactorBase(n, B, factorBase);
+        numPrimes = factorBase.size();
+    } while(numPrimes < 20);
 
     #ifdef DEBUG
+    std::cerr << B << " " << L << std::endl << std::endl;
     printFactorBase(factorBase);
     #endif
     //std::cerr<<"here1"<<std::endl;
@@ -63,7 +70,7 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
     mpz_class baseSquaredMinusN = base*base - n, twoBase = base<<1;
 
     unsigned int  nbit = mpz_sizeinbase(n.get_mpz_t(), 2),      // int e non long long per blanczos
-                        threshold = std::max(64u, nbit>>1),
+                        threshold = std::max(64u, nbit>>1),     // per blanczos ne servono almeno 64 in più
                         toSearch = std::max(64u, nbit<<2),
                         numNewPrimes = 0,
                         numTotPrimes = numPrimes,               // conta tutti i primi della factor base (usati e non usati), più i large primes usati
@@ -82,6 +89,7 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
         #ifdef DEBUG
         std::cerr << "Iteration: " << iteration << std::endl;
         std::cerr << "Threshold: " << threshold << std::endl;
+        std::cerr << "toSearch: " << toSearch << std::endl;
         std::cerr << "numTotPrimes: " << numTotPrimes << std::endl;
         std::cerr << "numSmooths: " << numSmooths << std::endl;
         std::cerr << std::endl;
@@ -189,6 +197,7 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
     std::cerr << "After " << iteration << " iteration(s):" << std::endl;
     //printSmooths(smooths);
     std::cerr << "Threshold: " << threshold << std::endl;
+        std::cerr << "toSearch: " << toSearch << std::endl;
     std::cerr << "numTotPrimes: " << numTotPrimes << std::endl;
     std::cerr << "numSmooths: " << numSmooths << std::endl;
     std::cerr << "Biggest large prime used: " << maxP << std::endl;
@@ -348,6 +357,11 @@ unsigned long long activateSieve(unsigned long long toFind, unsigned short maxLo
             sum_of_logs += l;
         }
 
+        /*#ifdef DEBUG
+        if(a%1000 == 0)
+            std::cerr<< " " << (sum_of_logs>>6) << std::endl;
+        #endif*/
+
         if(sum_of_logs < lastLog){
             divisors.clear();
             continue;
@@ -356,11 +370,17 @@ unsigned long long activateSieve(unsigned long long toFind, unsigned short maxLo
         y = baseSquaredMinusN + a*(twoBase + a);
         double logyD = log2(y.get_d());
         unsigned short logy = (unsigned short) (logyD * (1<<6));
-        // lastLog is < logy to allow inclusion of "large" prime    - da Wikiversity
 
+        // lastLog is < logy to allow inclusion of "large" prime    - da Wikiversity
         if(logy > maxLogp2){
             lastLog = logy - maxLogp2;
+            /*#ifdef DEBUG
+            std::cerr << "here " << (lastLog>>6) << " " << (maxLogp2>>6) <<std::endl;
+            #endif*/
         }
+        /*#ifdef DEBUG
+        std::cerr<< " " << (lastLog>>6) << std::endl;
+        #endif*/
         if(sum_of_logs < lastLog){
             divisors.clear();
             continue;
@@ -368,7 +388,9 @@ unsigned long long activateSieve(unsigned long long toFind, unsigned short maxLo
 
         // abbiamo un elemento probabilmente smooth, tranne per al più un large prime
         found++;
-        //std::cerr<<"found one"<<std::endl;
+        /*#ifdef DEBUG
+        std::cerr << "found one " << found <<std::endl;
+        #endif*/
         smooths.push_back(smoothElem(a+base, y));   // x = a+base, y = x^2-n
         smoothElem & elem = smooths.back();
 
@@ -398,6 +420,9 @@ void initializeSieve(const mpz_class& n, mpz_class& base, mpz_class& L, std::uno
 
     mpz_class p, Pot, Pot_, a, tmp1, tmp2, tmp3;
     std::vector<mpz_class> roots, roots1;
+    #ifdef DEBUG
+    unsigned short totLog = (short unsigned) 0;
+    #endif
     for(auto& coppia : factorBase){
         p = coppia.first;
         unsigned short l = coppia.second;
@@ -412,6 +437,9 @@ void initializeSieve(const mpz_class& n, mpz_class& base, mpz_class& L, std::uno
             findRoot(a, p, roots[0], tmp1, tmp2, tmp3);
             roots[1] = p-roots[0];
         }
+        #ifdef DEBUG
+        totLog += l;
+        #endif
 
         roots1 = roots;
         //insertRoots(roots, base, p, setaccio, a, l);  // inserisco le radici mod p dopo quelle mod p^e per averle in cima alle forward list
@@ -452,10 +480,17 @@ void initializeSieve(const mpz_class& n, mpz_class& base, mpz_class& L, std::uno
 
             Pot_ = Pot;
             Pot *= p;
+
+            #ifdef DEBUG
+            totLog += l;
+            #endif
         }
 
         insertRoots(roots1, base, p, setaccio, a, l);
     }
+    #ifdef DEBUG
+    std::cerr<<"totLog: "<<totLog << " " << (totLog>>6) << std::endl <<std::endl;
+    #endif
 }
 
 
@@ -523,6 +558,6 @@ void choose_params(mpz_class &n, mpz_class &B, mpz_class &L){
             l = exp((1.0 + 10/n.get_d())*sqrt(logn * loglogn) - (1/2.0)*loglogn);     // qui usato un decimo per non prendere troppe potenze, che tanto vengono già coperte dal margine per il large prime
 
     B = b; L = l;
-    if(B < 50) B=50;
-    if(L < 1000) L=1000;
+    if(B < 100) B=100;
+    if(L < 5000) L=5000;
 }
