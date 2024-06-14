@@ -7,7 +7,8 @@ numbits = [int(pow(x, i)) for i in range(116)]
 numbits = [num for num in numbits if num > 8]
 
 
-f = open("dataset.txt", "w")
+f = open("dataset.json", "w")
+f.write('[\n')
 
 last = 1
 for i, numbit in enumerate(numbits):
@@ -23,7 +24,9 @@ for i, numbit in enumerate(numbits):
     last = n
     line = ({'index': i, 'numbits (of n)': numbit, 'n': n, '(p, q)': (p, q)})
     json.dump(line, f)
+    if i != len(numbits)-1:
+        f.write(',')
     f.write('\n')
 
-
+f.write(']')
 f.close()
