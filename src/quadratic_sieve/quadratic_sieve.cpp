@@ -7,6 +7,7 @@
 #endif
 //#include <cassert>
 //#include<algorithm>
+#include<iostream>
 
 void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
 
@@ -25,14 +26,15 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
     unsigned long long numPrimes; //= factorBase.size();
 
     do{
-        B*=2; L*=2;
+        B*=2; L*=2;                                     // questo *2 qui forse andrebbe dopo, ma così ci mette la metà del tempo...
         logMaxP2 = buildFactorBase(n, B, factorBase);
         numPrimes = factorBase.size();
+        //std::cerr << "numPrimes sofar: " << numPrimes << std::endl;
     } while(numPrimes < 20);
 
     #ifdef DEBUG
     std::cerr << B << " " << L << std::endl << std::endl;
-    printFactorBase(factorBase);
+    //printFactorBase(factorBase);
     #endif
     //std::cerr<<"here1"<<std::endl;
 
@@ -49,7 +51,7 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
     initializeSieve(n, base, L, factorBase, setaccio);
 
     #ifdef DEBUG
-    printSetaccio(setaccio, base);
+    //printSetaccio(setaccio, base);
     #endif
     //std::cerr<<"here2"<<std::endl;
 
@@ -255,6 +257,7 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
     std::cerr << std::endl;
     if(Nsol == 0) std::cerr << "Warning: 0 solutions were found" << std::endl;
     #endif
+    if(Nsol == 0) std::cerr << "Warning: 0 solutions were found" << std::endl;
     //std::cerr<<"here5" << " " << Nsol <<std::endl;
 
     mpz_class X, Y, Ysquared;
@@ -266,6 +269,7 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
             bool taken = ((std::bitset<64> (mask & result[i]).count() % 2) == 1);
             if(taken){
                 X *= smooths[i].x;
+                X = X%n;
                 Ysquared *= smooths[i].y;
             }
         }
@@ -558,6 +562,9 @@ void choose_params(mpz_class &n, mpz_class &B, mpz_class &L){
             l = exp((1.0 + 10/n.get_d())*sqrt(logn * loglogn) - (1/2.0)*loglogn);     // qui usato un decimo per non prendere troppe potenze, che tanto vengono già coperte dal margine per il large prime
 
     B = b; L = l;
+
+    //B*=3; L*=3;         // euristica che dà risultati molto migliori su n a 128 bit, ma rompre block lanczos su n a 160 bit...
+
     if(B < 100) B=100;
     if(L < 5000) L=5000;
 }
