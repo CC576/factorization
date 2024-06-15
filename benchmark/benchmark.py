@@ -16,8 +16,8 @@ def testAlg(alg: str, dataset: dict, start=0):
     statFile = "statistics" + alg + ".txt"
 
     printStats = False
-    timeout = 60                 # da aggiustare
-    statsThreshold = 1       # da aggiustare
+    timeout = 60*60*24*15       # = 15 giorni
+    statsThreshold = 1800       # = 30 min
 
     for i in range(start, len(dataset)):
         print("current index: ", i)
