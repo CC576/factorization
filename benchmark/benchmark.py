@@ -16,10 +16,11 @@ def testAlg(alg: str, dataset: dict, start=0):
     statFile = "statistics" + alg + ".txt"
 
     printStats = False
+    timeout = 2                 # da aggiustare
+    statsThreshold = 1800       # mezz'ora
 
     for i in range(start, len(dataset)):
         newPoint = dict(dataset[i])
-        timeout = 2                # da aggiustare
         fout = open(outFile, "a")                       # se il file non esiste viene creato
 
         try:
@@ -49,7 +50,7 @@ def testAlg(alg: str, dataset: dict, start=0):
             p = int(result[0].strip(), 10)
             q = int(result[1].strip(), 10)
 
-
+            # controllare che l'output sia corretto
             status = (p*q == newPoint["n"])
             p=abs(p); q=abs(q)
             status = status and p!=1 and p!=newPoint["n"] and q!=1 and q!= newPoint["n"]
@@ -59,21 +60,24 @@ def testAlg(alg: str, dataset: dict, start=0):
 
             newPoint['(pRes, qRes)'] = (p, q)
 
-
-
+            # tempo e memoria usati
             resUsage = output.split('\n')[1]
             resUsage = "{" + resUsage + "}"
             print(resUsage)
             resUsage = json.loads(resUsage)
             newPoint.update(resUsage)
 
-
+            # stampare statistiche
             if(printStats and (alg == '3' or alg == '4')):
-                stats = {"index": newPoint["index"], "nbit":newPoint["numbits (of n)"], "n":newPoint["n"], "status": status, stats:coso.stderr}
+                stats = {"index": newPoint["index"], "nbit":newPoint["numbits (of n)"], "n":newPoint["n"], "status": status, "stats":coso.stderr}
 
                 fstat = open(statFile, "a")
                 json.dump(stats, fstat)
                 fstat.close()
+
+            # se il test ha impiegato più di mezz'ora, da quello dopo stampiamo le statistiche
+            if(resUsage["utime"] >= statsThreshold):
+                printStats = True
 
         finally:
             newPoint['status'] = status

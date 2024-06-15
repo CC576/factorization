@@ -10,6 +10,7 @@
 #include <cassert>
 #include <sys/resource.h>
 
+#include "src/utils/statsVar.hpp"
 #include "src/utils/utils_mpz/hash_mpz.hpp"
 #include "src/utils/utils_mpz/mpz_ull.hpp"
 #include "src/utils/utils_modP/roots_modP.hpp"
@@ -33,6 +34,8 @@ int main(int argc, char** argv){
     mpz_class p,q;
     //std::cout<<mpz_scan1(n.get_mpz_t(), 0)<<std::endl;
     int alg = argv[1][0] - '0';
+
+    if(argc > 3) printStats = true;
 
     switch (alg)
     {
@@ -58,7 +61,7 @@ int main(int argc, char** argv){
     int ret;
     ret = getrusage(RUSAGE_SELF, &usage);
     std::cout   << "\"userTime\": [" << usage.ru_utime.tv_sec << ", " << usage.ru_utime.tv_usec << "], "
-                << "\"sistemTime\": [" << usage.ru_stime.tv_sec << ", " << usage.ru_stime.tv_usec << "], "
+                << "\"systemTime\": [" << usage.ru_stime.tv_sec << ", " << usage.ru_stime.tv_usec << "], "
                 << "\"RSS (in kB)\": " << usage.ru_maxrss << std::endl;
 
     return 0;

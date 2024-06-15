@@ -14,6 +14,7 @@
 //#include <unordered_set>
 //#include <bit>
 #include <bitset>
+#include "../utils/statsVar.hpp"
 #include "../utils/utils_mpz/hash_mpz.hpp"
 #include "../utils/utils_mpz/mpz_ull.hpp"
 #include "../utils/utils_modP/roots_modP.hpp"
