@@ -159,7 +159,7 @@ TEST(Quadratic, initializedSive){
 
 TEST(Quadratic, bigInput) {
   mpz_class n;
-  n = "2694510496740314556501037319858087";
+  n = "2694510496740314556501037319858087";   // 100710366161784104467949462748056679263
   mpz_class p, q;
   quadratic_sieve(n, p, q);
 

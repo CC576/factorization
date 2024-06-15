@@ -85,7 +85,9 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
         t1 = t2;
         //std::cout << std::endl << t1.tv_usec << std::endl;
 
-        std::clog << "\"Max num of elements in sieve array (theoretical)\": " << totRoots << ", " ;
+        if(iterazioniEsterne == 0){
+            std::clog << "\"Max num of elements in sieve array (theoretical)\": " << totRoots << ", " ;
+        }
     }
 
     #ifdef DEBUG
@@ -133,6 +135,8 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
         std::cerr << "numTotPrimes: " << numTotPrimes << std::endl;
         std::cerr << "numSmooths: " << numSmooths << std::endl;
         std::cerr << std::endl;
+        //std::cout << std::endl << maxP - B*B << std::endl;
+        //std::cout << std::endl << a << std::endl;
         //printSmooths(smooths);
         #endif
         //std::cerr<<"hereI"<<std::endl;
@@ -202,6 +206,7 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
                 //divisors.push_back({y, (short unsigned) 0});
                 if(usedPrimes.count(y) == 0){    // abbiamo trovato un nuovo large prime (che in un certo senso estende la factor base)
                     numNewPrimes++; // questo serve solo per statistiche in realtà
+                    //std::cout << y << std::endl;
                     numTotPrimes++;
                     uint32_t pos = usedPrimes.size();
                     usedPrimes[y] = pos;
@@ -275,6 +280,7 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
     std::cerr << "Biggest large prime used: " << maxP << std::endl;
     std::cerr << "Number of iterations: " << iteration << std::endl;
     std::cerr << std::endl;
+    //std::cout << std::endl << a << std::endl;
     #endif
 
     #ifdef DEBUG
@@ -396,7 +402,11 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
         std::clog << "\"outcome " << (iterazioniEsterne+1) << "\": \"Failed\", ";
     }
 
-    base = a+1;                     // primo elemento da visitare in caso di fail = ultimo visitato +1
+    base += a+1;                     // primo elemento da visitare in caso di fail = ultimo visitato +1
+    smooths.clear();
+    usedPrimes.clear();
+    mat.clear();
+    result.clear();
     }
 
     //std::cerr<<"here7"<<std::endl;
