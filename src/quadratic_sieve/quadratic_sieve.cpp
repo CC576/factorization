@@ -8,8 +8,18 @@
 //#include <cassert>
 //#include<algorithm>
 #include<iostream>
+#include<sys/resource.h>
 
 void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
+    struct rusage usage;
+    int ret;
+    timeval t1, t2, tdiff;
+
+    if(printStats){
+        std::clog << "{";
+        ret = getrusage(RUSAGE_SELF, &usage);
+        t1 = usage.ru_utime;
+    }
 
     // scelta parametri
     // B e magari approx lunghezza intervallo di sieving
@@ -32,6 +42,22 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
         //std::cerr << "numPrimes sofar: " << numPrimes << std::endl;
     } while(numPrimes < 20);
 
+
+    if(printStats){
+        // stampare tempo per build factor base
+        ret = getrusage(RUSAGE_SELF, &usage);
+        t2 = usage.ru_utime;
+        ret = timeval_subtract(&tdiff, &t2, &t1);
+        std::clog   << "\"Time to build factor base\": [" << tdiff.tv_sec << ", " << tdiff.tv_usec << "], ";
+        t1 = t2;
+        //std::cout << std::endl << t1.tv_usec << std::endl;
+
+        std::clog   << "\"B\": " << B << ", "
+                    << "\"L\": " << L << ", "
+                    << "\"Factor base dim\": " << numPrimes << ", ";
+    }
+
+
     #ifdef DEBUG
     std::cerr << B << " " << L << std::endl << std::endl;
     //printFactorBase(factorBase);
@@ -48,7 +74,19 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
 // da qui andrebbe tutto dentro a un loop che si ripete se il gcd trova solo divisori banali di n
     for(int iterazioniEsterne = 0; iterazioniEsterne<10; iterazioniEsterne++){
 
-    initializeSieve(n, base, L, factorBase, setaccio);
+    long long totRoots = initializeSieve(n, base, L, factorBase, setaccio);
+
+    if(printStats){
+        // stampare tempo per initialize sieve
+        ret = getrusage(RUSAGE_SELF, &usage);
+        t2 = usage.ru_utime;
+        ret = timeval_subtract(&tdiff, &t2, &t1);
+        std::clog   << "\"Time to initialize sieve\": [" << tdiff.tv_sec << ", " << tdiff.tv_usec << "], ";
+        t1 = t2;
+        //std::cout << std::endl << t1.tv_usec << std::endl;
+
+        std::clog << "\"Max num of elements in sieve array (theoretical)\": " << totRoots << ", " ;
+    }
 
     #ifdef DEBUG
     //printSetaccio(setaccio, base);
@@ -77,13 +115,13 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
                         numNewPrimes = 0,
                         numTotPrimes = numPrimes,               // conta tutti i primi della factor base (usati e non usati), più i large primes usati
                         missing = 0 + numTotPrimes + nbit,
-                        numSmooths = 0;
+                        numSmooths = 0, partialSmooths = 0;
     unsigned long long entries = 0ULL;      // serve davvero?
     unsigned short lastLog = 0;
-    #ifdef DEBUG
+    //#ifdef DEBUG
     unsigned short iteration = 0;
     mpz_class maxP = 0;
-    #endif
+    //#endif
 
     std::unordered_map<mpz_class, uint32_t> usedPrimes;         // comprende solo i primi usati
 
@@ -114,7 +152,7 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
         //elemSetaccio divisors;
         //std::cerr << numSmooths - missing << " " << numSmooths << std::endl;
         for(unsigned i = numSmooths-missing; i < numSmooths; i++){  // bisogna solo scorrere i nuovi elementi aggiunti
-            unsigned int count = 0u;
+            unsigned int count = 0u;        // = num di fattori primi di smooths[i] con exp dispari
             auto& elem = smooths[i];
             mpz_class y = elem.y;
 
@@ -167,12 +205,13 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
                     numTotPrimes++;
                     uint32_t pos = usedPrimes.size();
                     usedPrimes[y] = pos;
-                    #ifdef DEBUG
+                    //#ifdef DEBUG
                     if(y>maxP) maxP=y;
-                    #endif
+                    //#endif
                 }
                 entries++;
                 count++;
+                partialSmooths++;
             }
             if(count == 0){ // y è un quadrato
                 #ifdef DEBUG
@@ -183,17 +222,48 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
                 fattore2 = abs(gcd(n, X+Y));
                 if(fattore1 == n) fattore1 = n/fattore2;   // potrebbero essere n e q --> vogliamo p e q
                 if(fattore2 == n) fattore2 = n/fattore1;   // potrebbero essere p ed n --> vogliamo p e q
-                if(fattore1 != 1 && fattore2 != 1) return;  // se sono entrambi diversi da 1 sono anche entrambi diversi da n
+                if(fattore1 != 1 && fattore2 != 1){         // se sono entrambi diversi da 1 sono anche entrambi diversi da n
+                    if(printStats){
+                        // stampare tempo per setaccio fin qui
+                        ret = getrusage(RUSAGE_SELF, &usage);
+                        t2 = usage.ru_utime;
+                        ret = timeval_subtract(&tdiff, &t2, &t1);
+                        std::clog   << "\"Time to activate sieve\": [" << tdiff.tv_sec << ", " << tdiff.tv_usec << "], ";
+                        t1 = t2;
+                        //std::cout << std::endl << t1.tv_usec << std::endl;
 
+                        std::clog << "\"Dim of sieving interval\": " << (a+base - sqrt(n)) << ", ";
+                        std::clog << "\"outcome\": \"Found a perfect square\", \"perfect square\": " << elem.y;
+                        std::clog << "}\n";
+                    }
+                    return;
+                }
             }
             //divisors.swap(elem.primes);     // ora elem.primes contiene solo i divisori primi con esponenete dispari,
         }                                   // che risultano in ordine crescente a parte per il large prime che viene messo all'inizio
 
-        #ifdef DEBUG
+        //#ifdef DEBUG
         iteration++;
-        #endif
+        //#endif
     } while(numSmooths < threshold + numTotPrimes);
     setaccio.clear();   // ripulisco il setaccio per avere più spazio per l'algebra lineare
+
+    if(printStats){
+        // stampare tempo per setaccio
+        ret = getrusage(RUSAGE_SELF, &usage);
+        t2 = usage.ru_utime;
+        ret = timeval_subtract(&tdiff, &t2, &t1);
+        std::clog   << "\"Time to activate sieve\": [" << tdiff.tv_sec << ", " << tdiff.tv_usec << "], ";
+        t1 = t2;
+        //std::cout << std::endl << t1.tv_usec << std::endl;
+
+        std::clog   << "\"Calls to activateSieve()\": " << iteration << ", "
+                    << "\"Num of large primes\": " << numNewPrimes << ", "
+                    << "\"Num of true smooths\": " << (numSmooths - partialSmooths) << ", "
+                    << "\"Num of partial smooths\": " << partialSmooths << ", "
+                    << "\"Biggest large prime\": " << maxP << ", "
+        ;
+    }
 
     #ifdef DEBUG
     std::cerr << "After " << iteration << " iteration(s):" << std::endl;
@@ -231,6 +301,13 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
     std::vector<uint32_t> mat;
     mat.reserve(entries<<1);
     uint64_t entries2 = getMatrix(smooths, mat, usedPrimes);
+    if(printStats){
+        std::clog   << "\"Matrix rows\": " << usedPrimes.size() << ", "
+                    << "\"Matrix cols\": " << numSmooths << ", "
+                    << "\"Matrix entries\": " << entries2 << ", "
+                    << "\"Entries per row\": " << (entries2/double(usedPrimes.size())) << ", "
+        ;
+    }
     #ifdef DEBUG
     std::cerr << "Number of entries: " << entries << " =? " << entries2 << std::endl;
     assert(entries == entries2);
@@ -246,18 +323,32 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
     #endif
     //std::cerr<<"here4"<<std::endl;
 
-
-
     // differenza quadrati: radici e gcd
+
     uint64_t totSol = (1ull<<(Nsol -1ull)) - 1ull;      // un po' sus ma dovrebbe andare
     totSol = (totSol<<1ull) + 1ull;
     if(Nsol == 0) totSol = 0;
+
+    if(printStats){
+        // stampare tempo per algebra lineare
+        ret = getrusage(RUSAGE_SELF, &usage);
+        t2 = usage.ru_utime;
+        ret = timeval_subtract(&tdiff, &t2, &t1);
+        std::clog   << "\"Time for linear algebra\": [" << tdiff.tv_sec << ", " << tdiff.tv_usec << "], ";
+        t1 = t2;
+        //std::cout << std::endl << t1.tv_usec << std::endl;
+
+        std::clog   << "\"Nullspace vectors\": " << Nsol << ", "
+                    << "\"Span size:\": " << totSol << ", "
+        ;
+    }
+
     #ifdef DEBUG
     std::cerr << totSol << std::endl;
     std::cerr << std::endl;
     if(Nsol == 0) std::cerr << "Warning: 0 solutions were found" << std::endl;
     #endif
-    if(Nsol == 0) std::cerr << "Warning: 0 solutions were found" << std::endl;
+    if(Nsol == 0) std::cerr << "\"Warning\": \"0 solutions were found\"" << std::endl;
     //std::cerr<<"here5" << " " << Nsol <<std::endl;
 
     mpz_class X, Y, Ysquared;
@@ -279,19 +370,42 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
         fattore2 = abs(gcd(n, X+Y));
         if(fattore1 == n) fattore1 = n/fattore2;   // potrebbero essere n e q --> vogliamo p e q
         if(fattore2 == n) fattore2 = n/fattore1;   // potrebbero essere p ed n --> vogliamo p e q
-        if(fattore1 != 1 && fattore2 != 1) return;  // adesso se sono entrambi diversi da 1 sono anche entrambi diversi da n
+        if(fattore1 != 1 && fattore2 != 1){         // adesso se sono entrambi diversi da 1 sono anche entrambi diversi da n
+            if(printStats){
+                // stampare tempo per ultima fase
+                ret = getrusage(RUSAGE_SELF, &usage);
+                t2 = usage.ru_utime;
+                ret = timeval_subtract(&tdiff, &t2, &t1);
+                std::clog   << "\"Time for roots and gcd\": [" << tdiff.tv_sec << ", " << tdiff.tv_usec << "], ";
+                t1 = t2;
+                //std::cout << std::endl << t1.tv_usec << std::endl;
 
+                std::clog << "\"Dim of sieving interval\": " << (a+base - sqrt(n)) << ", ";
+                std::clog << "\"Non-trivial congruence position\": " << mask << ", ";
+                std::clog << "\"outcome\": \"Found product perfect square\"";
+                std::clog << "}\n";
+            }
+            return;
+        }
     }
 
 
     // in caso di fail...
     //std::cerr<<"here6"<<std::endl;
+    if(printStats){
+        std::clog << "\"outcome " << (iterazioniEsterne+1) << "\": \"Failed\", ";
+    }
 
     base = a+1;                     // primo elemento da visitare in caso di fail = ultimo visitato +1
     }
 
     //std::cerr<<"here7"<<std::endl;
     //std::cerr<<"Something went wrong"<<std::endl;
+    if(printStats){
+        std::clog << "\"Dim of sieving interval\": " << (base - sqrt(n) - 1) << ", ";
+        std::clog << "\"outcome\": \"Failed all 10 tries\"";
+        std::clog << "}\n";
+    }
 }
 
 
@@ -419,8 +533,10 @@ unsigned long long activateSieve(unsigned long long toFind, unsigned short maxLo
 
 
 
-void initializeSieve(const mpz_class& n, mpz_class& base, mpz_class& L, std::unordered_map<mpz_class, unsigned short>& factorBase, std::unordered_map<mpz_class, elemSetaccio>& setaccio){
+long long initializeSieve(const mpz_class& n, mpz_class& base, mpz_class& L, std::unordered_map<mpz_class, unsigned short>& factorBase, std::unordered_map<mpz_class, elemSetaccio>& setaccio){
     // il setaccio sarà indicizzato da a=1..., con a=x-floor(sqrt(n)) --> y(x)=(a+base)^2 - n
+
+    long long totRoots = 0ll;
 
     mpz_class p, Pot, Pot_, a, tmp1, tmp2, tmp3;
     std::vector<mpz_class> roots, roots1;
@@ -480,7 +596,7 @@ void initializeSieve(const mpz_class& n, mpz_class& base, mpz_class& L, std::uno
                 roots[3] = Pot - roots[0];
             }
 
-            insertRoots(roots, base, Pot, setaccio, a, l);
+            totRoots += insertRoots(roots, base, Pot, setaccio, a, l);
 
             Pot_ = Pot;
             Pot *= p;
@@ -490,16 +606,17 @@ void initializeSieve(const mpz_class& n, mpz_class& base, mpz_class& L, std::uno
             #endif
         }
 
-        insertRoots(roots1, base, p, setaccio, a, l);
+        totRoots += insertRoots(roots1, base, p, setaccio, a, l);
     }
     #ifdef DEBUG
     std::cerr<<"totLog: "<<totLog << " " << (totLog>>6) << std::endl <<std::endl;
     #endif
+    return totRoots;
 }
 
 
 
-void insertRoots(std::vector<mpz_class>& roots, mpz_class& base, mpz_class& P, std::unordered_map<mpz_class, elemSetaccio>& setaccio, mpz_class& a, unsigned short l){
+long long insertRoots(std::vector<mpz_class>& roots, mpz_class& base, mpz_class& P, std::unordered_map<mpz_class, elemSetaccio>& setaccio, mpz_class& a, unsigned short l){
     for(auto& r : roots){
         // individuale il valore positivo di a più piccolo per cui a+base == r mod p
         // --> a == r-base mod p
@@ -514,6 +631,7 @@ void insertRoots(std::vector<mpz_class>& roots, mpz_class& base, mpz_class& P, s
             //it->second.push_back(std::make_pair(P, l));
         }
     }
+    return roots.size();
 }
 
 

@@ -38,8 +38,8 @@ void quadratic_sieve(mpz_class&, mpz_class&, mpz_class&);
 
 void choose_params(mpz_class&, mpz_class&, mpz_class&);
 unsigned short buildFactorBase(mpz_class&, mpz_class&, std::unordered_map<mpz_class, unsigned short>&);
-void initializeSieve(const mpz_class&, mpz_class&, mpz_class&, std::unordered_map<mpz_class, unsigned short>&, std::unordered_map<mpz_class, elemSetaccio>&);
-void insertRoots(std::vector<mpz_class>&, mpz_class&, mpz_class&, std::unordered_map<mpz_class, elemSetaccio>&, mpz_class& a, unsigned short);
+long long initializeSieve(const mpz_class&, mpz_class&, mpz_class&, std::unordered_map<mpz_class, unsigned short>&, std::unordered_map<mpz_class, elemSetaccio>&);
+long long insertRoots(std::vector<mpz_class>&, mpz_class&, mpz_class&, std::unordered_map<mpz_class, elemSetaccio>&, mpz_class& a, unsigned short);
 unsigned long long activateSieve(unsigned long long, unsigned short, mpz_class&, mpz_class&, mpz_class&, mpz_class&, /*std::unordered_map<mpz_class, unsigned short>&,*/ std::unordered_map<mpz_class, elemSetaccio>&, std::vector<smoothElem>&, unsigned short&);
 unsigned long long getMatrix(std::vector<smoothElem>&, std::vector<uint32_t>&, std::unordered_map<mpz_class, uint32_t>&);
 

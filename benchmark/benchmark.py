@@ -16,10 +16,11 @@ def testAlg(alg: str, dataset: dict, start=0):
     statFile = "statistics" + alg + ".txt"
 
     printStats = False
-    timeout = 2                 # da aggiustare
-    statsThreshold = 1800       # mezz'ora
+    timeout = 60                 # da aggiustare
+    statsThreshold = 1       # da aggiustare
 
     for i in range(start, len(dataset)):
+        print("current index: ", i)
         newPoint = dict(dataset[i])
         fout = open(outFile, "a")                       # se il file non esiste viene creato
 
@@ -63,20 +64,22 @@ def testAlg(alg: str, dataset: dict, start=0):
             # tempo e memoria usati
             resUsage = output.split('\n')[1]
             resUsage = "{" + resUsage + "}"
-            print(resUsage)
+            #print(resUsage)
             resUsage = json.loads(resUsage)
             newPoint.update(resUsage)
 
             # stampare statistiche
             if(printStats and (alg == '3' or alg == '4')):
-                stats = {"index": newPoint["index"], "nbit":newPoint["numbits (of n)"], "n":newPoint["n"], "status": status, "stats":coso.stderr}
+                stats = {"index": newPoint["index"], "nbit":newPoint["numbits (of n)"], "n":newPoint["n"], "status": status, "stats":coso.stderr.strip()}
 
                 fstat = open(statFile, "a")
                 json.dump(stats, fstat)
+                fstat.write(',\n')
                 fstat.close()
 
             # se il test ha impiegato più di mezz'ora, da quello dopo stampiamo le statistiche
-            if(resUsage["utime"] >= statsThreshold):
+            if(resUsage["userTime"][0] >= statsThreshold and not printStats):
+                print("starting to log statistics")
                 printStats = True
 
         finally:
