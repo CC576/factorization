@@ -20,7 +20,7 @@ def testAlg(alg: str, dataset: dict, start=0):
     for i in range(start, len(dataset)):
         newPoint = dict(dataset[i])
         timeout = 2                # da aggiustare
-        fout = open(outFile, "a")
+        fout = open(outFile, "a")                       # se il file non esiste viene creato
 
         try:
             args = ["../build/factoring_algorithms", alg, str(newPoint["n"])]
@@ -29,6 +29,7 @@ def testAlg(alg: str, dataset: dict, start=0):
 
         except subprocess.TimeoutExpired:
             status = "timeout"
+            newPoint["time"] = timeout
             print("Timeout for algrithm " + alg + " expired at numbit = ", newPoint["numbits (of n)"])
             break
 
@@ -39,10 +40,15 @@ def testAlg(alg: str, dataset: dict, start=0):
             break
 
         else:
-            result = coso.stdout
-            result = result[1:-2].split(',')
+            output = coso.stdout
+            #print(output)
+
+            result = output.split('\n')[0]
+            result = result[1:-1].split(',')
+            #print(result)
             p = int(result[0].strip(), 10)
             q = int(result[1].strip(), 10)
+
 
             status = (p*q == newPoint["n"])
             p=abs(p); q=abs(q)
@@ -52,6 +58,15 @@ def testAlg(alg: str, dataset: dict, start=0):
             else: status = "math error"
 
             newPoint['(pRes, qRes)'] = (p, q)
+
+
+
+            resUsage = output.split('\n')[1]
+            resUsage = "{" + resUsage + "}"
+            print(resUsage)
+            resUsage = json.loads(resUsage)
+            newPoint.update(resUsage)
+
 
             if(printStats and (alg == '3' or alg == '4')):
                 stats = {"index": newPoint["index"], "nbit":newPoint["numbits (of n)"], "n":newPoint["n"], "status": status, stats:coso.stderr}

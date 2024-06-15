@@ -8,6 +8,7 @@
 //#include <Polynomial/Polynomial.hpp>
 #include <tuple>
 #include <cassert>
+#include <sys/resource.h>
 
 #include "src/utils/utils_mpz/hash_mpz.hpp"
 #include "src/utils/utils_mpz/mpz_ull.hpp"
@@ -53,6 +54,12 @@ int main(int argc, char** argv){
     }
 
     std::cout << "(" << p << ", " << q << ")" << std::endl;
+    struct rusage usage;
+    int ret;
+    ret = getrusage(RUSAGE_SELF, &usage);
+    std::cout   << "\"userTime\": [" << usage.ru_utime.tv_sec << ", " << usage.ru_utime.tv_usec << "], "
+                << "\"sistemTime\": [" << usage.ru_stime.tv_sec << ", " << usage.ru_stime.tv_usec << "], "
+                << "\"RSS (in kB)\": " << usage.ru_maxrss << std::endl;
 
     return 0;
 }
