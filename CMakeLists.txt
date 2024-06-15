@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wpedantic")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -fsanitize=address -DDEBUG")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3")
+link_directories( $ENV{LD_LIBRARY_PATH} )
 
 
 # setup ExternalProject and create an install location for it
