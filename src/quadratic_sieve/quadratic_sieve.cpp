@@ -76,7 +76,7 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
 
 
 // da qui andrebbe tutto dentro a un loop che si ripete se il gcd trova solo divisori banali di n
-    for(int iterazioniEsterne = 0; iterazioniEsterne<10; iterazioniEsterne++){
+    for(int iterazioniEsterne = 0; iterazioniEsterne<20; iterazioniEsterne++){
 
     long long totRoots = initializeSieve(n, base, L, factorBase, setaccio);
 
