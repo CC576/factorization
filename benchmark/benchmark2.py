@@ -11,7 +11,7 @@ import resource
 # 4: gnfs
 
 
-def testAlg(alg: str, dataset: dict, start=0):
+def testAlg(alg: str, dataset: dict, start=0, end=None):
     outFile = "output" + alg + ".txt"
     statFile = "statistics" + alg + ".txt"
 
@@ -19,7 +19,10 @@ def testAlg(alg: str, dataset: dict, start=0):
     timeout = 60*60*24*15       # = 15 giorni
     statsThreshold = 1800       # = 30 min
 
-    for i in range(start, len(dataset)):
+    if end is None:
+        end = len(dataset)
+
+    for i in range(start, end):
         print("current index: ", i)
         newPoint = dict(dataset[i])
         fout = open(outFile, "a")                       # se il file non esiste viene creato
@@ -113,10 +116,15 @@ def main():
 
     if(len(sys.argv) > 1):
         alg = sys.argv[1]       # è una stringa
-        start = 0
+
+        start, end = 0, len(dataset)
         if(len(sys.argv) > 2):
             start = int(sys.argv[2])
-        testAlg(alg, dataset, start)
+            if(len(sys.argv) > 3):
+                end = int(sys.argv[3])
+
+        testAlg(alg, dataset, start, end)
+
     else:
         for i in range(1, 5):
             testAlg(str(i), dataset)
