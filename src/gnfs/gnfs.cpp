@@ -13,6 +13,7 @@
 
 
 void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
+    // assume n>216, n dispari, n composto, n non potenza
 
 
     // 1. preparazione
@@ -27,7 +28,24 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
     std::cout << coso << std::endl;*/   // la conversione sembra funzionare
 
     // 1.b scelta parametri: costruire polinomio (e testare irriducibilità)
+    long d;
+    ZZ m, B;
+    ZZX f;
+    chooseParams(nMPZ, d, m, f, B);
+    std:: cout << m << std::endl;
+    std::cout << f << std::endl;
+    {
+        ZZ coso(0), pot(1);
+        for(long i=0; i<=deg(f); i++){
+            coso += (coeff(f, i)*pot);
+            pot*=m;
+        }
+        std::cout << (coso==n) <<std::endl;
+    }
 
+    // provare a fattorizzare f
+    // controllare gcd(m, n) e gcd(f'(m), n)
+    // calcolare f'
 
     // 1.c costruire factor bases
 
@@ -77,4 +95,85 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
 
 
     // 5. gestire fail...
+}
+
+
+
+
+
+void chooseParams(const mpz_class& n, long& d, ZZ& m, ZZX& f, ZZ& B){
+    double eps = 1.0/128;              // epsilon > 0 arbitrario ma fisso
+    double beta = cbrt(8.0/9) + eps;
+
+    double logn = log(n.get_d()), loglogn = log(logn);
+
+    // d = [(2/beta)^(1/2)*(logn/loglogn)^(1/3)], d dev'essere >= 3 e dispari       // grado del polinomio
+    double deg = sqrt(2/beta)*cbrt(logn/loglogn);
+    //std::cout << int(deg) <<std::endl;
+    d = floor(deg);
+    d = max(d, 3);
+    if(d%2 == 0) d++;
+
+    // B = exp(beta*(logn)^(1/3)*(loglogn)^(2/3)))          // bound per i primi in RFB e AFB
+    double bound = exp(beta*cbrt(logn*loglogn*loglogn));
+    if(bound < 100) bound = 100.0;
+    conv(B, bound);
+    //std::cout<< B << std::endl;
+
+    // ricerca del polinomio monico f di grado d a coefficienti più piccoli per cui f(m)=n
+    mpz_class mstart, mend, mbest, mcurr, bestCoeffSize = n, currCoeffSize, lastCoeff, currCoeff, tmp;
+    mpz_root(mstart.get_mpz_t(), n.get_mpz_t(), d);
+    mbest = mstart;
+    tmp = n/2;
+    mpz_root(mend.get_mpz_t(), tmp.get_mpz_t(), d);
+    mend++;
+
+    if(mend < mstart - 1'000'000) mend = mstart - 1'000'000;    // facciamo massimo 1mln di prove
+
+    for(mcurr = mstart; mcurr >= mend; mcurr--){
+        tmp = n;
+        currCoeffSize = 0;
+        lastCoeff = 0;
+        // estrarre coeff da c_0 a c_(d-1), poi verificare c_d==1
+        for(long i=0; i<=d; i++){
+            currCoeff = tmp%mcurr;
+            tmp/=mcurr;
+
+            if(i!=d && lastCoeff > (mcurr/2)){
+                lastCoeff -= mcurr;
+                currCoeff++;
+            }
+
+            if(abs(lastCoeff) > currCoeffSize){
+                currCoeffSize = abs(lastCoeff);
+            }
+            lastCoeff = currCoeff;
+        }
+
+        if(lastCoeff != 1){
+            mpz_pow_ui(tmp.get_mpz_t(), mcurr.get_mpz_t(), d);
+            std::cerr << "Errore nella scrittura in base m " << n/tmp << " " << lastCoeff << std::endl;
+            exit(3);
+        }
+
+        if(currCoeffSize < bestCoeffSize){
+            bestCoeffSize = currCoeffSize;
+            mbest = mcurr;
+        }
+    }
+
+    mpz_2_ZZ(mbest, m);
+    f.SetLength(d+1);
+    ZZ tmpZZ;
+    mpz_2_ZZ(n, tmpZZ);
+    for(long i=0; i<=d; i++){
+        SetCoeff(f, i, tmpZZ%m);
+        tmpZZ /= m;
+
+        if(0<i && i<d && coeff(f, i-1) > m/2){
+            SetCoeff(f, i-1, coeff(f, i-1)-m);
+            SetCoeff(f, i, coeff(f, i)+1);
+        }
+    }
+
 }

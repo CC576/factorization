@@ -684,10 +684,10 @@ unsigned short buildFactorBase(mpz_class& n, mpz_class& B, std::unordered_map<mp
 
 
 void choose_params(mpz_class &n, mpz_class &B, mpz_class &L){
-    // B = exp((1/2 + o(1))*(logn loglogn)^(1/2)), e controllare che sia almeno 5
+    // B = exp((1/2 + o(1))*(logn loglogn)^(1/2)), e controllare che sia almeno 100
         // (altrimenti ci vuole troppo tempo per i numeri piccoli perché non si trovano abbastanza B-smooth)
 
-    // L = exp((logn loglogn)^(1/2)-(1/2)*loglogn), e controllare che sia almeno 100
+    // L = exp((logn loglogn)^(1/2)-(1/2)*loglogn), e controllare che sia almeno 5000
 
     double logn = log(n.get_d()), loglogn = log(logn);
     double  b = exp((1/2.0 + 100/n.get_d())*sqrt(logn * loglogn)),                     // scelto 100/n come o(1)
