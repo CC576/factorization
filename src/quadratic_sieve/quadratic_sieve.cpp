@@ -40,7 +40,7 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
     numPrimes = factorBase.size();
     while(numPrimes < 20)
     /*do*/{
-        B*=2; L*=2;                                     // questo *2 qui forse andrebbe dopo, ma così ci mette la metà del tempo...
+        B*=2; L*=2;
         logMaxP2 = buildFactorBase(n, B, factorBase);
         numPrimes = factorBase.size();
         //std::cerr << "numPrimes sofar: " << numPrimes << std::endl;

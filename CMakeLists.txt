@@ -53,6 +53,11 @@ target_link_libraries(factoring_algorithms_lib gmpxx)
 target_link_libraries(factoring_algorithms_lib mpfr)
 #target_link_libraries(factoring_algorithms_lib Singular)
 target_link_libraries(factoring_algorithms_lib blanczos)
+#target_link_libraries(factoring_algorithms_lib fflas)
+#target_link_libraries(factoring_algorithms_lib givaro)
+#target_link_libraries(factoring_algorithms_lib linbox)
+target_link_libraries(factoring_algorithms_lib ntl)
+
 
 # executable factoring_algorithms compiled from
 # main.cpp and linked with the base library
