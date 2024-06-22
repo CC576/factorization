@@ -11,6 +11,6 @@
 #include <NTL/tools.h>
 using namespace NTL;
 
-void gnfs(mpz_class&, mpz_class&, mpz_class&);
+void gnfs(const mpz_class&, mpz_class&, mpz_class&);
 
 #endif

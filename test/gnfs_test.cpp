@@ -5,7 +5,7 @@
 #include <gmp.h>
 #include <gmpxx.h>
 
-//#include <NTL/tools.h>
+//#include <NTL/ZZ.h>
 //using namespace NTL;
 
 //#include <tuple>
