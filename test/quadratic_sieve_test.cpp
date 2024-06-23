@@ -156,7 +156,7 @@ TEST(Quadratic, initializedSive){
 
 // test per blanczos? O assumo che funzioni?
 
-
+#ifndef DEBUG
 TEST(Quadratic, bigInput) {
   mpz_class n;
   n = "2694510496740314556501037319858087";   // 100710366161784104467949462748056679263
@@ -165,3 +165,4 @@ TEST(Quadratic, bigInput) {
 
   ASSERT_EQ(n, p*q);
 }
+#endif

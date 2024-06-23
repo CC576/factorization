@@ -6,7 +6,7 @@
 #include <NTL/ZZ.h>
 using namespace NTL;
 
-void mpz_2_ZZ(const mpz_t&, ZZ&);
+void mpz_2_ZZ(const mpz_t&, ZZ&);       // ho fatto le signature molto storte, mi dispiace
 void mpz_2_ZZ(const mpz_class&, ZZ&);
 
 void mpz_from_ZZ(const ZZ&, mpz_t&);

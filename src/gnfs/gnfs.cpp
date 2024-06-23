@@ -9,6 +9,7 @@
 #include<sys/resource.h>
 
 #include "../utils/utils_mpz/mpz_ZZ.hpp"
+#include "../utils/utils_NTL/utils_ZZX.hpp"
 
 
 
@@ -32,20 +33,38 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
     ZZ m, B;
     ZZX f;
     chooseParams(nMPZ, d, m, f, B);
-    std:: cout << m << std::endl;
-    std::cout << f << std::endl;
-    {
-        ZZ coso(0), pot(1);
-        for(long i=0; i<=deg(f); i++){
-            coso += (coeff(f, i)*pot);
-            pot*=m;
-        }
-        std::cout << (coso==n) <<std::endl;
-    }
 
+    #ifdef DEBUG
+    std:: cout << "m: " << m << std::endl;
+    std::cout << "f: " << f << std::endl;
+    {
+        ZZ coso;
+        ZZX_eval(coso, f, m);
+        std::cout << "f(m)==n? " << ((coso==n) ? "true" : "false") <<std::endl;
+        //ZZX_eval(coso, f, m);
+        //std::cout << "f(m)==n?" << (coso==n) <<std::endl;
+    }
+    #endif
+
+    ZZX fPrime;
+    ZZ tmp(0);
     // provare a fattorizzare f
     // controllare gcd(m, n) e gcd(f'(m), n)
     // calcolare f'
+    bool foundEarlyFactor = findEarlyFactors(n, tmp, f, fPrime, m);
+    #ifdef DEBUG
+    if(foundEarlyFactor)
+        std:: cout << "Found early factors of n" << std::endl;
+    else
+        std:: cout << "Did not find early factors of n" << std::endl;
+    #endif
+    if(foundEarlyFactor){
+        mpz_from_ZZ(tmp, fattore1);
+        fattore1 = abs(fattore1);
+        fattore2 = nMPZ/fattore1;
+        return;
+    }
+
 
     // 1.c costruire factor bases
 
@@ -98,6 +117,36 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
 }
 
 
+
+
+
+bool findEarlyFactors(const ZZ& n, ZZ& fattore, const ZZX& f, ZZX fPrime, const ZZ& m){
+    // provare a fattorizzare f
+    // controllare gcd(m, n) e gcd(f'(m), n)
+    // calcolare f'
+
+    fattore = GCD(m, n);    // m non può essere +-n
+    if(fattore > 1) return true;
+
+    diff(fPrime, f);
+    ZZ tmp;
+    ZZX_eval(tmp, fPrime, m);
+    fattore = GCD(tmp, n);
+    if(fattore > 1) return true;
+
+    vec_pair_ZZX_long factors;
+    factor(tmp, factors, f);
+
+    for(auto& [coso, i] : factors){     // assumo che se c'è stata una fattorizzazione non banale di f allora questa ne induce una non banale di n,
+                                        // e in particolare che se non è stata trovata alcuna fattorizzazione non banale di n, allora f è irriducibile
+                                        // (dovrebbe essere vero perché il termine noto di f è <= m/2)
+        ZZX_eval(fattore, coso, m);
+        fattore = abs(fattore);
+        if(1 < fattore && fattore < n) return true;
+    }
+
+    return false;
+}
 
 
 
