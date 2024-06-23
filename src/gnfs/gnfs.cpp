@@ -10,6 +10,7 @@
 
 #include "../utils/utils_mpz/mpz_ZZ.hpp"
 #include "../utils/utils_NTL/utils_ZZX.hpp"
+#include "factorBases.hpp"
 
 
 
@@ -41,8 +42,6 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
         ZZ coso;
         ZZX_eval(coso, f, m);
         std::cout << "f(m)==n? " << ((coso==n) ? "true" : "false") <<std::endl;
-        //ZZX_eval(coso, f, m);
-        //std::cout << "f(m)==n?" << (coso==n) <<std::endl;
     }
     #endif
 
@@ -67,7 +66,9 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
 
 
     // 1.c costruire factor bases
-
+    factorBase RFB, AFB, QCB;
+    ZZ L;                                                           // large prime bound, forse serve solo dentro buildFactorBases
+    uint8_t logMaxP2 = buildFactorBases(n, f, RFB, AFB, QCB, B, L);    // log of large prime bound
 
 
 
@@ -115,6 +116,41 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
 
     // 5. gestire fail...
 }
+
+
+
+
+
+
+
+
+uint8_t buildFactorBases(const ZZ& n, const ZZX& f, factorBase& RFB, factorBase& AFB, factorBase& QCB, const ZZ& B, ZZ& L){
+    std::vector<std::pair<long, uint8_t>> primes;
+    uint8_t logMaxP = genPrimesList(primes, B);
+    L = primes.back().first;
+    L*=L;
+
+    // build RFB
+    // pol g = x - m    ((a/b)-m)modp == (a-bm)modp (b!=0modp)
+    // primi fino a B, includere potenze fino a 2B
+
+
+    // build AFB
+    // pol f
+    // primi fino a B, includere potenze fino a 2B
+
+
+
+    // build QCB
+    // pol f, assicurarsi di non beccare radici multiple
+    // solo q>L, e bisogna generarne 3*log2(n)  (o meno?)
+    long t = 3*log2(conv<double>(n));
+    buildQCB(QCB, f, L, t);
+
+
+    return (logMaxP << 1);      // log di L
+}
+
 
 
 

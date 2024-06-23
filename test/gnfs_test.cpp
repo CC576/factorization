@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "../src/gnfs/gnfs.hpp"
+#include "../src/gnfs/factorBases.hpp"
 
 #include <gmp.h>
 #include <gmpxx.h>
@@ -64,7 +65,23 @@ TEST(GNFS, EarlyFactors){
 }
 
 
+TEST(GNFS, rootsModP){
+  ZZX f;
+  SetCoeff(f, 0, 8);
+  SetCoeff(f, 1, 29);
+  SetCoeff(f, 2, 15);
+  SetCoeff(f, 3,1);
 
+  ZZ p(67);
+  ZZ_p::init(p);
+  //ZZ_pX fp = conv<ZZ_pX>(f);
+
+  std::vector<ZZ> roots, trueRoots = {ZZ(2), ZZ(6), ZZ(44)};
+  rootsOfFmodP(f, p, roots);
+
+  sort(roots.begin(), roots.end());
+  ASSERT_EQ(roots, trueRoots);
+}
 
 
 

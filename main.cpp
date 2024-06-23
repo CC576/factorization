@@ -20,6 +20,7 @@
 #include "src/quadratic_sieve/quadratic_sieve.hpp"
 #include "src/gnfs/gnfs.hpp"
 
+//#include <NTL/ZZ.h>
 //#include <NTL/ZZ_pXFactoring.h>
 
 /*
@@ -83,6 +84,22 @@ int main(int argc, char** argv){
 
     return 0;
 }
+
+
+
+
+/*int main6(){          // printa anche p=2
+    PrimeSeq s;
+   long p;
+
+   p = s.next();
+   while (p <= 1000) {
+      std::cout << p << "\n";
+      p = s.next();
+   }
+}*/
+
+
 
 
 /*int main5(){

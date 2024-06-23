@@ -4,8 +4,11 @@
 #include <gmp.h>
 #include <gmpxx.h>
 
-#include <cmath>
 #include <blanczos.h>
+
+#include <cmath>
+#include <utility>
+#include <vector>
 //#include <bitset>
 
 #include <NTL/ZZ.h>
@@ -14,9 +17,23 @@
 #include <NTL/ZZXFactoring.h>
 using namespace NTL;
 
+struct ideal{
+    ZZ p;
+    ZZ r;
+    uint8_t logP;
+
+    ideal(const ZZ& _p, const ZZ& _r, const uint8_t _logP){
+        p = _p; r = _r;
+        logP = _logP;
+    }
+};
+
+typedef std::vector<ideal> factorBase;
+
 void gnfs(const mpz_class&, mpz_class&, mpz_class&);
 
 void chooseParams(const mpz_class& n, long& d, ZZ& m, ZZX& f, ZZ& B);
 bool findEarlyFactors(const ZZ& n, ZZ& fattore, const ZZX& f, ZZX fPrime, const ZZ& m);
+uint8_t buildFactorBases(const ZZ& n, const ZZX& f, factorBase& RFB, factorBase& AFB, factorBase& QCB, const ZZ& B, ZZ& L);
 
 #endif
