@@ -23,7 +23,9 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
     // 1.a convertire n in uno ZZ
     ZZ n;
     mpz_2_ZZ(nMPZ, n);
+    #ifdef DEBUG
     std::cout << n << std::endl;
+    #endif
 
     /*mpz_class coso;
     mpz_from_ZZ(n, coso);
@@ -43,6 +45,7 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
         ZZX_eval(coso, f, m);
         std::cout << "f(m)==n? " << ((coso==n) ? "true" : "false") <<std::endl;
     }
+    std:: cout << "B: " << B << std::endl;
     #endif
 
     ZZX fPrime;
@@ -68,7 +71,20 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
     // 1.c costruire factor bases
     factorBase RFB, AFB, QCB;
     ZZ L;                                                           // large prime bound, forse serve solo dentro buildFactorBases
-    uint8_t logMaxP2 = buildFactorBases(n, f, RFB, AFB, QCB, B, L);    // log of large prime bound
+    std::vector<std::pair<long, uint8_t>> primes;
+    uint8_t logMaxP2 = buildFactorBases(n, f, RFB, AFB, QCB, B, L, m, primes);    // log of large prime bound
+
+    #ifdef DEBUG
+    std::cout << "Number of primes: " << primes.size() << std::endl;
+    std::cout << "RFB size: " << RFB.size() << std::endl;
+    std::cout << "AFB size: " << AFB.size() << std::endl;
+    std::cout << "QCB size: " << QCB.size() << std::endl;
+    std::cout << "Large prime bound: " << L << std::endl;
+
+    //std::cout << "AFB:" << std::endl;
+    //printFBgnfs(AFB);
+    #endif
+
 
 
 
@@ -124,8 +140,7 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
 
 
 
-uint8_t buildFactorBases(const ZZ& n, const ZZX& f, factorBase& RFB, factorBase& AFB, factorBase& QCB, const ZZ& B, ZZ& L){
-    std::vector<std::pair<long, uint8_t>> primes;
+uint8_t buildFactorBases(const ZZ& n, const ZZX& f, factorBase& RFB, factorBase& AFB, factorBase& QCB, const ZZ& B, ZZ& L, ZZ& m, std::vector<std::pair<long, uint8_t>>& primes){
     uint8_t logMaxP = genPrimesList(primes, B);
     L = primes.back().first;
     L*=L;
@@ -133,12 +148,15 @@ uint8_t buildFactorBases(const ZZ& n, const ZZX& f, factorBase& RFB, factorBase&
     // build RFB
     // pol g = x - m    ((a/b)-m)modp == (a-bm)modp (b!=0modp)
     // primi fino a B, includere potenze fino a 2B
-
+    ZZX g; SetX(g); g-=m;
+    buildFBase(RFB, g, B, primes);
 
     // build AFB
     // pol f
     // primi fino a B, includere potenze fino a 2B
+    buildFBase(AFB, f, B, primes);
 
+    //std::cout << "built AFB" << std::endl;
 
 
     // build QCB
@@ -147,6 +165,7 @@ uint8_t buildFactorBases(const ZZ& n, const ZZX& f, factorBase& RFB, factorBase&
     long t = 3*log2(conv<double>(n));
     buildQCB(QCB, f, L, t);
 
+    //std::cout << "built QCB" << std::endl;
 
     return (logMaxP << 1);      // log di L
 }
@@ -201,7 +220,7 @@ void chooseParams(const mpz_class& n, long& d, ZZ& m, ZZX& f, ZZ& B){
 
     // B = exp(beta*(logn)^(1/3)*(loglogn)^(2/3)))          // bound per i primi in RFB e AFB
     double bound = exp(beta*cbrt(logn*loglogn*loglogn));
-    if(bound < 100) bound = 100.0;
+    if(bound < 100.0) bound = 100.0;                        // garantisce che ci siano almeno 15 primi in RFB, non dà garanzie sulle altre basi però
     conv(B, bound);
     //std::cout<< B << std::endl;
 

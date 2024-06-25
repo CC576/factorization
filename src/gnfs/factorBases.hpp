@@ -6,5 +6,6 @@
 uint8_t genPrimesList(std::vector<std::pair<long, uint8_t>>& primes, const ZZ& B);
 void buildQCB(factorBase& QCB, const ZZX&f, const ZZ& L, long t);
 void rootsOfFmodP(const ZZX& f, const ZZ p, std::vector<ZZ>& roots, bool multiple=true);
+void buildFBase(factorBase& FB, const ZZX&f, const ZZ& B, std::vector<std::pair<long, uint8_t>>& primes);
 
 #endif

@@ -85,6 +85,118 @@ TEST(GNFS, rootsModP){
 
 
 
+TEST(GNFS, factorBases){
+  ZZ n(2601699059);       // questo n genera un polinomio f con radici multiple modulo almeno 4 primi p, di cui uno dà esponente 4
+  mpz_class nMPZ = 2601699059;
+
+  long d;
+  ZZ m, B;
+  ZZX f;
+  chooseParams(nMPZ, d, m, f, B);
+
+  factorBase RFB, AFB, QCB;
+  ZZ L, tmp;
+  std::vector<std::pair<long, uint8_t>> primes;
+  uint8_t logMaxP2 = buildFactorBases(n, f, RFB, AFB, QCB, B, L, m, primes);
+
+  ZZ p(2);//, last(2);
+  //ZZ p, Pot, r;
+  //uint8_t l, trueLog;
+
+  ZZ_pX fp, q;
+  ZZ_p tmpP;
+
+
+  // check RFB
+  for(auto& [Pot, r, l] : RFB){
+    long e = 1;
+    if(ProbPrime(Pot)){
+      p = Pot;
+    } else{ // assumo p = last, Pot potenza di p, per l'ordine in cui ho aggiunto gli elementi
+      tmp = p;
+      while(tmp < Pot){
+        tmp*=p;
+        e++;
+      }
+      ASSERT_EQ(tmp, Pot) << "p=" << Pot << "in RFB is neither prime nor a power of a prime";
+    }
+    // Pot = p^e
+
+    uint8_t trueLog = (uint8_t) log2(conv<long>(p));  // per RFB e AFB p<B dovrebbe stare in un long
+    if(trueLog == l){     // caso radice singola
+      EXPECT_TRUE(m%Pot == r) << "m=" << m << " is not r=" << r << "mod Pot=" << Pot << " in RFB" ;
+    } else{               // caso radice multipla
+      ASSERT_TRUE(false) << "There shouldn't be multiple roots in RFB, how did we even get here?";
+    }
+
+  }
+
+
+  // check AFB
+  for(auto& [Pot, r, l] : AFB){
+      long e = 1;
+      if(ProbPrime(Pot)){
+        p = Pot;
+      } else{ // assumo p = last, Pot potenza di p, per l'ordine in cui ho aggiunto gli elementi
+        tmp = p;
+        while(tmp < Pot){
+          tmp*=p;
+          e++;
+        }
+        ASSERT_EQ(tmp, Pot) << "p=" << Pot << "in AFB is neither prime nor a power of a prime";
+      }
+      // Pot = p^e
+
+      ZZ_p::init(Pot);
+      fp = conv<ZZ_pX>(f);
+      uint8_t trueLog = (uint8_t) log2(conv<long>(p));  // per RFB e AFB p<B dovrebbe stare in un long
+
+      if(trueLog == l){     // caso radice singola
+
+        tmpP = eval(fp, conv<ZZ_p>(r));
+        EXPECT_TRUE(IsZero(tmpP)) << "r=" << r << " in AFB is not a root of f mod Pot=" << Pot;
+
+      } else{               // caso radice multipla
+
+        // per come ho calcolato l deve valere questa cosa
+        EXPECT_TRUE(l % trueLog == 0) << "Log_2 l=" << l << " of power " << Pot << " = " << p <<"^"<<e<<" in AFB is wrong";
+        e = l/trueLog;
+        Pot = power(p, (long) e);
+
+        for(tmp = 0; tmp < Pot; tmp+=p){
+          tmpP = eval(fp, conv<ZZ_p>(r+tmp));
+          ASSERT_TRUE(IsZero(tmpP)) << "r=" << r+tmp << " in AFB is not a root of f mod Pot=" << Pot;
+        }
+      }
+
+    }
+
+
+  // check QCB
+  long t = log2(conv<double>(n));
+  EXPECT_GE(QCB.size(), 3*t) << "Size QCB is too small";
+  EXPECT_LE(QCB.size(), 3*(t+1)) << "Size QCB is too big";
+
+  for(auto& [p, r, l] : QCB){
+    ZZ_p::init(p);
+    fp = conv<ZZ_pX>(f);
+
+    ASSERT_TRUE(ProbPrime(p)) << "p=" << p << " in QCB is not prime";
+
+    uint8_t trueLog = (uint8_t) log2(conv<double>(p));
+    if(trueLog >= l) EXPECT_LT(trueLog - l, 1) << "Log2 of p=" << p <<" in QCB is wrong";
+    else EXPECT_LT(l - trueLog, 1) << "Log2 of p=" << p <<" in QCB is wrong";
+
+    SetX(q); q-=conv<ZZ_p>(r);      // q = x-r
+    EXPECT_TRUE(divide(fp, q)) << "r=" << r << " in QCB is not a root of f mod p=" << p;
+    q = q*q;
+    EXPECT_FALSE(divide(fp, q)) << "r=" << r << " in QCB is a multiple root of f mod p=" << p;
+  }
+
+} // il test è stato superato, il mio calcolo sulle radici mod potenze di primi era (molto probabilmente) giusto!
+
+
+
 
 
 // test per blanczos? O assumo che funzioni?

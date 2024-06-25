@@ -15,6 +15,7 @@
 #include <forward_list>
 //#include "../utils_mpz/hash_mpz.hpp"
 #include "../../quadratic_sieve/quadratic_sieve.hpp"
+#include "../../gnfs/gnfs.hpp"
 /*
 typedef std::forward_list<std::pair<mpz_class, unsigned short>> elemSetaccio;
 typedef struct smoothElem_{       // rischio di fare confusione con queste definizioni di tipi sparse in più file
@@ -32,5 +33,7 @@ void printFactorBase(std::unordered_map<mpz_class, unsigned short>&);
 void printSetaccio(std::unordered_map<mpz_class, elemSetaccio>&, mpz_class&);
 void printSmooths(std::vector<smoothElem> &);
 void printUsedPrimes(std::unordered_map<mpz_class, uint32_t> &);
+
+void printFBgnfs(factorBase& FB);
 
 #endif

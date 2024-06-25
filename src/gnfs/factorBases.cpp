@@ -1,6 +1,7 @@
 #include "factorBases.hpp"
 
 #include <NTL/ZZ_pXFactoring.h>
+#include "../utils/utils_NTL/utils_ZZX.hpp"
 
 uint8_t genPrimesList(std::vector<std::pair<long, uint8_t>>& primes, const ZZ& B){
     PrimeSeq s;
@@ -73,7 +74,7 @@ void buildQCB(factorBase& QCB, const ZZX&f, const ZZ& L, long t){
 
     long found = 0;
     while(found < t){
-        q = NextPrime(last);
+        q = NextPrime(last+1);
         uint8_t log2q = (uint8_t) log2(conv<double>(q));
 
         //ZZ_p::init(q);
@@ -89,5 +90,75 @@ void buildQCB(factorBase& QCB, const ZZX&f, const ZZ& L, long t){
         roots.resize(0);
 
         last = q;
+        //std::cout << q << " " << found << std::endl;
     }
+}
+
+
+
+void buildFBase(factorBase& FB, const ZZX&f, const ZZ& B, std::vector<std::pair<long, uint8_t>>& primes){
+    std::vector<ZZ> roots;
+    ZZ tmp, Pot;
+    ZZ_p invFPrime, tmp2;
+    ZZ_pX fp, der;
+
+    for(auto& primo : primes){
+        ZZ p = ZZ(primo.first);
+        rootsOfFmodP(f, p, roots);
+        ZZ_p::init(p);
+        fp = conv<ZZ_pX>(f);
+        der = diff(fp);
+
+        //if(p==5) std::cout << fp << " " << der << std::endl;
+
+        for(auto& r : roots){
+            // includere potenze fino a 2B (nel caso radice singola)
+            tmp2 = eval(der, conv<ZZ_p>(r));
+
+            //if(p==5) std::cout << r << " " << tmp2 << std::endl;
+
+            if(IsZero(tmp2)){   // radice multipla, per ogni potenza p^e ne genera p^(e-1)
+                //if(p==5) std::cout << "here5" << std::endl;
+
+                // dobbiamo titrare fuori tutti i (o almeno molti) fattori p da f(r) = r^d + c_(d-1)*r^(d-1) + ... + c_1*r + c_0
+                // |f(r)| <= r^d + max(|c|)*sum(r^(d-1)+...+1) < r^d + max(|c|)*2*r^(d-1) = r^(d-1) * (r + 2max(|c|)) < r^(d-1)*3max(|c|)
+                // |f(r)| < p^(d-1)*3*max(|c|) < B^(d-1)*3*max(|c|) <= 3*B^(d-1)*m <= 3*B^(d-1)*n^(1/d)
+
+                uint8_t e = 0;
+                ZZX_eval(tmp, f, r);
+                if(tmp == 0){
+                    e = (uint8_t) 255/primo.second;
+                    tmp = 1;
+                }
+                while(tmp%p == 0){
+                    e++; tmp/=p;
+                    //if(e == (uint8_t) 255) std::cout << "here" << std::endl;
+                    //std::cout << "here " << e << std::endl;
+                }
+                //std::cout << int(e) << std::endl;
+
+                FB.push_back(ideal(p, r, e*primo.second));      // incremento di p perché sono tutti i valori %= r mod p,
+                                                                // mentre il log è e*log2p perché f(r) è diviso da p^e
+
+            } else{ // radice singola, per ogni potenza di p ne genera solo un'altra
+                invFPrime = inv(tmp2);
+                Pot = p;
+
+                while(Pot < 2*B){
+                    FB.push_back(ideal(Pot, r, primo.second));
+                    ZZX_eval(tmp, f, r);
+                    tmp = tmp/Pot;                          // tmp = f(r)/Pot
+                    tmp2 = -conv<ZZ_p>(tmp)*invFPrime;
+                    r += conv<ZZ>(tmp2)*Pot;                // radice di f mod Pot*p:   r + Pot*((-f(r)/Pot * (f'(r))^(-1))%p)
+                    Pot*=p;
+                }
+            }
+
+
+        }
+
+        roots.clear();
+        roots.resize(0);
+    }
+
 }

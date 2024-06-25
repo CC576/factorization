@@ -58,3 +58,19 @@ void printUsedPrimes(std::unordered_map<mpz_class, uint32_t> & S){
     }
     std::cerr << std::endl << std::endl;;
 }
+
+
+void printIdeal(ideal& i){
+    std::cout << "{" << i.p << ", " << i.r << ", " << int(i.logP) << "}";
+}
+
+
+void printFBgnfs(factorBase& FB){
+    std::cout << "[" << std::endl;
+    for(auto& ideale : FB){
+        std::cout << "\t";
+        printIdeal(ideale);
+        std::cout << std::endl;
+    }
+    std::cout << "]" << std::endl << std::endl;
+}

@@ -87,6 +87,62 @@ int main(int argc, char** argv){
 
 
 
+/*
+#include "src/gnfs/factorBases.hpp"
+#include "src/utils/utils_mpz/mpz_ZZ.hpp"
+#include "src/utils/utils_NTL/utils_ZZX.hpp"
+#include <NTL/ZZ_pXFactoring.h>
+int main(int argc, char** argv){
+    mpz_class nMPZ; // = 1497130049;    // 3221763169
+    nMPZ = argv[2];
+    ZZ n;
+    mpz_2_ZZ(nMPZ, n);
+    long d;
+    ZZ m, B;
+    ZZX f;
+    chooseParams(nMPZ, d, m, f, B);
+
+    std::cout << "f: " << f << std::endl;
+
+    std::vector<std::pair<long, uint8_t>> primes;
+    genPrimesList(primes, B);
+
+    ZZ_pX fp;
+
+    for(auto& [p, l] : primes){
+        ZZ_p::init(conv<ZZ>(p));
+        fp = conv<ZZ_pX>(f);
+
+        Vec<Pair<ZZ_pX, long>> factors;
+        CanZass(factors, fp);
+
+        for(auto& [fattore, esp] : factors){
+            if(deg(fattore) == 1 && esp > 1){
+                std::cout << "Found multiple root: " << fattore << " with multiplicity " << esp << " mod " << p << std::endl;
+                MakeMonic(fattore);
+                ZZ_p coso = -coeff(fattore, 0);
+                ZZ coso2 = conv<ZZ>(coso);
+                ZZ tmp; ZZX_eval(tmp, f, coso2);
+                std::cout << tmp << ", e: ";
+
+                uint8_t e = (uint8_t) 0;
+                if(tmp == 0){
+                    e = (uint8_t) 255;
+                    tmp = 1;
+                }
+                while(tmp%p == 0){
+                    e++; tmp/=p;
+                }
+                std::cout <<  int(e) << std::endl;
+            }
+        }
+        //std::cout << factors << std::endl;
+    }
+
+}//*/
+
+
+
 
 /*int main6(){          // printa anche p=2
     PrimeSeq s;
@@ -117,7 +173,7 @@ int main(int argc, char** argv){
 
     NTL::Vec< NTL::Pair< NTL::ZZ_pX, long > > factors;
 
-    NTL::CanZass(factors, f);  // calls "Cantor/Zassenhaus" algorithm
+    NTL::CanZass(factors, f);  // calls "Cantor-Zassenhaus" algorithm
 
     std::cout << factors << "\n";
 
