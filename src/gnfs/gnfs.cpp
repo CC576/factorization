@@ -10,7 +10,9 @@
 
 #include "../utils/utils_mpz/mpz_ZZ.hpp"
 #include "../utils/utils_NTL/utils_ZZX.hpp"
+#include "../utils/utils_NTL/hash_ZZ.hpp"
 #include "factorBases.hpp"
+#include "sieving.hpp"
 
 
 
@@ -70,15 +72,16 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
 
     // 1.c costruire factor bases
     factorBase RFB, AFB, QCB;
+    long k, l, t;                   // dimensioni di RFB, AFB e QCB senza potenze
     ZZ L;                                                           // large prime bound, forse serve solo dentro buildFactorBases
-    std::vector<std::pair<long, uint8_t>> primes;
-    uint8_t logMaxP2 = buildFactorBases(n, f, RFB, AFB, QCB, B, L, m, primes);    // log of large prime bound
+    primeList primes;
+    uint8_t logMaxP2 = buildFactorBases(n, f, RFB, AFB, QCB, B, L, m, primes, k, l, t);    // log of large prime bound
 
     #ifdef DEBUG
     std::cout << "Number of primes: " << primes.size() << std::endl;
-    std::cout << "RFB size: " << RFB.size() << std::endl;
-    std::cout << "AFB size: " << AFB.size() << std::endl;
-    std::cout << "QCB size: " << QCB.size() << std::endl;
+    std::cout << "RFB size: " << RFB.size() << ", k: " << k << std::endl;
+    std::cout << "AFB size: " << AFB.size() << ", l: " << l << std::endl;
+    std::cout << "QCB size: " << QCB.size() << ", t: " << t << std::endl;
     std::cout << "Large prime bound: " << L << std::endl;
 
     //std::cout << "AFB:" << std::endl;
@@ -90,16 +93,28 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
 
     // 2. sieving
 
-    // 2.a sieving razionale
+    long maxA;                                  // metto un limite per assicurarmi che sia un long e che non si ripetano valori nel sieving razionale
+    if(B > m/2) maxA = conv<long>(m/2);         // |a|<=m/2 --> |a-bm| <= m(1/2+b) --> log|-a-bm| <= logm + log(1/2+b) < logm + logb + 1
+    else maxA = conv<long>(B);                  //          --> |a-bm| >= m(b-1/2) --> log|a-bm| >= logm + log(b-1/2) >= logm + logb - 1
+                                                // --> uso logm + logb + 1 - logMaxP2 come quantità da raggiungere nel sieving razionale
+    uint8_t logm = log2(conv<double>(m));
 
-    // 2.b sieving algebrico
+    ZZ b(1);
+
+
+// iterazioni esterne in caso di fail di blanczos
+
+    std::vector<smoothElemGNFS> smooths;
+    long numSmooths = 0, rationalPrimes = 0, algebraicPrimes = 0;
+    uint64_t entries = 0ull;
+    entries = sieve(n, m, f, logMaxP2, L, b, maxA, logm, t, numSmooths, rationalPrimes, algebraicPrimes, primes, RFB, AFB, smooths);
 
 
 
 
     // 3. dipendenze lineari
 
-    // 3.a preprocessing (trial division, segno, e quadratic characters)
+    // 3.a preprocessing (trial division (già fatta in sieve), segno, e quadratic characters)
 
     // 3.b block lanczos
 
@@ -131,16 +146,101 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
 
 
     // 5. gestire fail...
+
+    // svuotare le strutture dati usate solo dal sieving in poi
 }
 
 
 
 
+uint64_t sieve(const ZZ& n, const ZZ& m, const ZZX& f, const uint8_t logMaxP2, const ZZ& L, ZZ& b, const long maxA, const uint8_t logm, const long quadChars, long& numSmooths, long& rationalPrimes, long& algebraicPrimes,  const primeList& primes, const factorBase& RFB, const factorBase& AFB, std::vector<smoothElemGNFS>& smooths){
+   uint64_t entries = 0ULL;      // serve davvero?
+
+    sieveArray setaccio(2*maxA + 1);
+    std::vector<bool> isProbSmooth(2*maxA + 1);   // sarebbbero indicizzati da -maxA a +maxA
+    std::vector<ZZ> probSmooths;
+
+    long nbit = (long) (log2(conv<double>(n))),
+        threshold = std::max((long) 64, nbit>>1),       // per blanczos ne servono almeno 64 in più
+        newRatPrimes = 0, newAlgPrimes = 0,             // solo per statistiche
+        rationalPrimes = 1, algebraicPrimes = 1,        // sto contando -1 e -1
+        //minRows = 1 + 1 + t,                            // il numero di righe sarà 1 (segno a-bm) + 1 (segno) + QCB.size() + num primi razionali usati + num ideali primi usati
+        numSmooths = 0, partialSmooths = 0;
+
+    //unsigned short lastLog = 0;           // può aiutare?
+    ZZ maxNewP(0),                             // per statistiche
+    maxP(primes.back().first),
+    aMinusBm, normAB, tmp;
+    ZZX fb;
+
+    idealMap usedRatPrimes, usedAlgPrimes;         // comprende solo i primi usati
+    usedRatPrimes[{conv<ZZ>(-1), conv<ZZ>(0)}] = 0u;
+    usedAlgPrimes[{conv<ZZ>(-1), conv<ZZ>(0)}] = 0u;
+
+    for(; numSmooths < rationalPrimes + algebraicPrimes + quadChars + threshold; b++){
+    // iterazioni su b=1... finché non si trovano abbastanza coppie smooth
+        tmp = 1;
+        for(long i = deg(f); i>=0; i--){
+            SetCoeff(fb, i, coeff(f, i)*tmp);
+            tmp*=b;
+        }
+
+        // chiamare line sieve
+        lineSieve(fb, logMaxP2, b, maxA, logm, RFB, AFB, setaccio, isProbSmooth, probSmooths);
+
+        for(auto& a : probSmooths){
+            a -= maxA;
+
+            // scartare coppie con gcd(a, b)!=1;
+            tmp = GCD(a, b);
+            if(tmp != 1) continue;
+
+            // aggiungiamo temporaneamente un elemento a smooths, da rimuovere se (a,b) non è smooth
+            smooths.push_back({a, b});
+            std::vector<std::pair<ZZ, ZZ>> fattoriRat, fattoriAlg;
+
+            // trial division per a-bm
+            aMinusBm = a-b*m;
+            std::pair<bool, bool> isSmooth = trialDivide(a, b, aMinusBm, L, primes, fattoriRat);
+            if(!isSmooth.first){
+                smooths.pop_back();
+                //fattoriRat.clear();
+                continue;
+            }
+            bool wasPartialSmooth = !isSmooth.second;
+
+            // trial division per N(a+b*theta)
+            ZZX_eval(normAB, fb, a);
+            isSmooth = trialDivide(a, b, normAB, L, primes, fattoriAlg);
+            if(!isSmooth.first){
+                smooths.pop_back();
+                //fattoriRat.clear();
+                //fattoriAlg.clear();
+                continue;               // non serve davvero
+            }
+
+            if(wasPartialSmooth || !isSmooth.second) partialSmooths++;      // non distinguo quelli parziali su RFB da quelli parziali su AFB
+
+            // aggiungiamo effettivamente i fattori nelle hashmap
+            std::vector<uint32_t>& indici = smooths.back().rationalPpos;
+            moveFactors(indici, fattoriRat, maxP, maxNewP, usedRatPrimes, newRatPrimes);
+
+            indici = smooths.back().algebraicPpos;
+            moveFactors(indici, fattoriAlg, maxP, maxNewP, usedAlgPrimes, newAlgPrimes);
+
+            numSmooths++;
+        }
+
+
+        probSmooths.clear();
+    }
+
+   return entries;
+}
 
 
 
-
-uint8_t buildFactorBases(const ZZ& n, const ZZX& f, factorBase& RFB, factorBase& AFB, factorBase& QCB, const ZZ& B, ZZ& L, ZZ& m, std::vector<std::pair<long, uint8_t>>& primes){
+uint8_t buildFactorBases(const ZZ& n, const ZZX& f, factorBase& RFB, factorBase& AFB, factorBase& QCB, const ZZ& B, ZZ& L, ZZ& m, primeList& primes, long& k, long& l, long& t){
     uint8_t logMaxP = genPrimesList(primes, B);
     L = primes.back().first;
     L*=L;
@@ -149,12 +249,12 @@ uint8_t buildFactorBases(const ZZ& n, const ZZX& f, factorBase& RFB, factorBase&
     // pol g = x - m    ((a/b)-m)modp == (a-bm)modp (b!=0modp)
     // primi fino a B, includere potenze fino a 2B
     ZZX g; SetX(g); g-=m;
-    buildFBase(RFB, g, B, primes);
+    k = buildFBase(RFB, g, B, primes);
 
     // build AFB
     // pol f
     // primi fino a B, includere potenze fino a 2B
-    buildFBase(AFB, f, B, primes);
+    l = buildFBase(AFB, f, B, primes);
 
     //std::cout << "built AFB" << std::endl;
 
@@ -162,8 +262,8 @@ uint8_t buildFactorBases(const ZZ& n, const ZZX& f, factorBase& RFB, factorBase&
     // build QCB
     // pol f, assicurarsi di non beccare radici multiple
     // solo q>L, e bisogna generarne 3*log2(n)  (o meno?)
-    long t = 3*log2(conv<double>(n));
-    buildQCB(QCB, f, L, t);
+    long t1 = 3*log2(conv<double>(n));
+    t = buildQCB(QCB, f, L, t1);
 
     //std::cout << "built QCB" << std::endl;
 

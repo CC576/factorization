@@ -3,7 +3,7 @@
 #include <NTL/ZZ_pXFactoring.h>
 #include "../utils/utils_NTL/utils_ZZX.hpp"
 
-uint8_t genPrimesList(std::vector<std::pair<long, uint8_t>>& primes, const ZZ& B){
+uint8_t genPrimesList(primeList& primes, const ZZ& B){
     PrimeSeq s;
     long p;
     uint8_t logMaxP = 1, log2p;
@@ -68,7 +68,7 @@ void rootsOfFmodP(const ZZX& f, const ZZ p, std::vector<ZZ>& roots, bool multipl
 }
 
 
-void buildQCB(factorBase& QCB, const ZZX&f, const ZZ& L, long t){
+long buildQCB(factorBase& QCB, const ZZX&f, const ZZ& L, long t){
     ZZ last = L, q;
     std::vector<ZZ> roots;
 
@@ -87,16 +87,18 @@ void buildQCB(factorBase& QCB, const ZZX&f, const ZZ& L, long t){
             found++;
         }
         roots.clear();
-        roots.resize(0);
 
         last = q;
         //std::cout << q << " " << found << std::endl;
     }
+    return found;
 }
 
 
 
-void buildFBase(factorBase& FB, const ZZX&f, const ZZ& B, std::vector<std::pair<long, uint8_t>>& primes){
+long buildFBase(factorBase& FB, const ZZX&f, const ZZ& B, primeList& primes){
+    long primeIdeals = 0;
+
     std::vector<ZZ> roots;
     ZZ tmp, Pot;
     ZZ_p invFPrime, tmp2;
@@ -112,6 +114,8 @@ void buildFBase(factorBase& FB, const ZZX&f, const ZZ& B, std::vector<std::pair<
         //if(p==5) std::cout << fp << " " << der << std::endl;
 
         for(auto& r : roots){
+            primeIdeals++;
+
             // includere potenze fino a 2B (nel caso radice singola)
             tmp2 = eval(der, conv<ZZ_p>(r));
 
@@ -158,7 +162,7 @@ void buildFBase(factorBase& FB, const ZZX&f, const ZZ& B, std::vector<std::pair<
         }
 
         roots.clear();
-        roots.resize(0);
     }
 
+    return primeIdeals;
 }
