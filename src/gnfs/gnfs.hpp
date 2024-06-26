@@ -10,13 +10,14 @@
 #include <utility>
 #include <vector>
 #include <unordered_map>
-#include <map>                  // !!! da rimuovere quando avrò l'hash sulle pair di ZZ !!!
+//#include <map>                  //// !!! da rimuovere quando avrò l'hash sulle pair di ZZ !!!
 //#include <bitset>
 
 #include <NTL/ZZ.h>
 #include <NTL/ZZX.h>
 #include <NTL/pair_ZZX_long.h>
 #include <NTL/ZZXFactoring.h>
+#include "../utils/utils_NTL/hash_ZZ.hpp"
 using namespace NTL;
 
 struct ideal{                           // first degree prime ideal o una potenza
@@ -42,7 +43,7 @@ struct smoothElemGNFS{
 typedef std::vector<std::pair<long, uint8_t>> primeList;
 typedef std::vector<ideal> factorBase;
 typedef std::vector<uint8_t> sieveArray;
-typedef std::/*unordered_*/map<std::pair<ZZ, ZZ>, uint32_t> idealMap;
+typedef std::unordered_map<std::pair<ZZ, ZZ>, uint32_t> idealMap;
 
 void gnfs(const mpz_class&, mpz_class&, mpz_class&);
 
