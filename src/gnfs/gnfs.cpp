@@ -154,21 +154,29 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
 
 
 uint64_t sieve(const ZZ& n, const ZZ& m, const ZZX& f, const uint8_t logMaxP2, const ZZ& L, ZZ& b, const long maxA, const uint8_t logm, const long quadChars, long& numSmooths, long& rationalPrimes, long& algebraicPrimes,  const primeList& primes, const factorBase& RFB, const factorBase& AFB, std::vector<smoothElemGNFS>& smooths){
-   uint64_t entries = 0ULL;      // serve davvero?
+    uint64_t entries = 0ULL;      // serve davvero?
 
-    sieveArray setaccio(2*maxA + 1);
+    #ifdef DEBUG
+    std::cout << "Start sieving, initial b=" << b << std::endl;
+    long modForPrint = 1;
+    #endif
+
+    initSeed();                  // uno nuovo ogni volta che dobbiamo far ripartire il setaccio
+
+    sieveArray setaccio(2*maxA + 1, (uint8_t) 0u);
     std::vector<bool> isProbSmooth(2*maxA + 1);   // sarebbbero indicizzati da -maxA a +maxA
     std::vector<ZZ> probSmooths;
 
     long nbit = (long) (log2(conv<double>(n))),
         threshold = std::max((long) 64, nbit>>1),       // per blanczos ne servono almeno 64 in più
-        newRatPrimes = 0, newAlgPrimes = 0,             // solo per statistiche
-        rationalPrimes = 1, algebraicPrimes = 1,        // sto contando -1 e -1
-        //minRows = 1 + 1 + t,                            // il numero di righe sarà 1 (segno a-bm) + 1 (segno) + QCB.size() + num primi razionali usati + num ideali primi usati
-        numSmooths = 0, partialSmooths = 0;
+        newRatPrimes = 0, newAlgPrimes = 0, partialSmooths = 0;             // solo per statistiche
+
+    rationalPrimes = 1; algebraicPrimes = 1;        // sto contando -1 e -1
+    //minRows = 1 + 1 + t,                            // il numero di righe sarà 1 (segno a-bm) + 1 (segno) + QCB.size() + num primi razionali usati + num ideali primi usati
+    numSmooths = 0;
 
     //unsigned short lastLog = 0;           // può aiutare?
-    ZZ maxNewP(0),                             // per statistiche
+    ZZ maxNewP(0),                             // per statistiche (?)
     maxP(primes.back().first),
     aMinusBm, normAB, tmp;
     ZZX fb;
@@ -185,8 +193,24 @@ uint64_t sieve(const ZZ& n, const ZZ& m, const ZZX& f, const uint8_t logMaxP2, c
             tmp*=b;
         }
 
+        #ifdef DEBUG
+        if(b%modForPrint == 0){
+            std::cout << "b: " << b << std::endl;
+            std::cout << "numSmooths: " << numSmooths << std::endl;
+            std::cout << "rationalPrimes: " << rationalPrimes << std::endl;
+            std::cout << "algebraicPrimes: " << algebraicPrimes << std::endl;
+            std::cout << "quadChars: " << quadChars << std::endl;
+            std::cout << "threshold: " << threshold << std::endl;
+        }
+        #endif
+
         // chiamare line sieve
-        lineSieve(fb, logMaxP2, b, maxA, logm, RFB, AFB, setaccio, isProbSmooth, probSmooths);
+        long probSmoothFound = lineSieve(fb, logMaxP2, b, maxA, logm, RFB, AFB, setaccio, isProbSmooth, probSmooths);
+        #ifdef DEBUG
+        if(b%modForPrint == 0){
+            std::cout << "b: " << b << "\t\tProb smooth found: " << probSmoothFound << std::endl;
+        }
+        #endif
 
         for(auto& a : probSmooths){
             a -= maxA;
@@ -195,16 +219,21 @@ uint64_t sieve(const ZZ& n, const ZZ& m, const ZZX& f, const uint8_t logMaxP2, c
             tmp = GCD(a, b);
             if(tmp != 1) continue;
 
-            // aggiungiamo temporaneamente un elemento a smooths, da rimuovere se (a,b) non è smooth
-            smooths.push_back({a, b});
             std::vector<std::pair<ZZ, ZZ>> fattoriRat, fattoriAlg;
 
             // trial division per a-bm
             aMinusBm = a-b*m;
             std::pair<bool, bool> isSmooth = trialDivide(a, b, aMinusBm, L, primes, fattoriRat);
             if(!isSmooth.first){
-                smooths.pop_back();
+                //smooths.pop_back();
                 //fattoriRat.clear();
+
+                /*
+                #ifdef DEBUG
+                if(b%modForPrint == 0)
+                    std::cout << "b: " << b << "\t\tStuck here: not rat smooth" << std::endl;
+                #endif
+                //*/
                 continue;
             }
             bool wasPartialSmooth = !isSmooth.second;
@@ -213,27 +242,62 @@ uint64_t sieve(const ZZ& n, const ZZ& m, const ZZX& f, const uint8_t logMaxP2, c
             ZZX_eval(normAB, fb, a);
             isSmooth = trialDivide(a, b, normAB, L, primes, fattoriAlg);
             if(!isSmooth.first){
-                smooths.pop_back();
+                //smooths.pop_back();
                 //fattoriRat.clear();
                 //fattoriAlg.clear();
-                continue;               // non serve davvero
+                /*
+                #ifdef DEBUG
+                if(b%modForPrint == 0)
+                    std::cout << "b: " << b << "\t\tStuck here: not alg smooth" << std::endl;
+                #endif
+                //*/
+                continue;
             }
 
+            smooths.push_back({a, b});
             if(wasPartialSmooth || !isSmooth.second) partialSmooths++;      // non distinguo quelli parziali su RFB da quelli parziali su AFB
 
             // aggiungiamo effettivamente i fattori nelle hashmap
-            std::vector<uint32_t>& indici = smooths.back().rationalPpos;
-            moveFactors(indici, fattoriRat, maxP, maxNewP, usedRatPrimes, newRatPrimes);
+            std::vector<uint32_t>& indici1 = smooths.back().rationalPpos;
+            moveFactors(indici1, fattoriRat, maxP, maxNewP, usedRatPrimes, newRatPrimes);
+            entries+=indici1.size();
 
-            indici = smooths.back().algebraicPpos;
-            moveFactors(indici, fattoriAlg, maxP, maxNewP, usedAlgPrimes, newAlgPrimes);
+            /*
+            #ifdef DEBUG
+            if(b%(modForPrint*10) == 0)
+                std::cout << "b: " << b << "\there 1" << std::endl;
+            #endif
+            //*/
+
+            std::vector<uint32_t>& indici2 = smooths.back().algebraicPpos;
+            moveFactors(indici2, fattoriAlg, maxP, maxNewP, usedAlgPrimes, newAlgPrimes);
+            entries+=indici2.size();
+
+            /*
+            #ifdef DEBUG
+            if(b%(modForPrint*10) == 0)
+                std::cout << "b: " << b << "\there 2" << std::endl;
+            #endif
+            //*/
 
             numSmooths++;
         }
 
-
+        rationalPrimes = usedRatPrimes.size();
+        algebraicPrimes = usedAlgPrimes.size();
         probSmooths.clear();
     }
+
+    #ifdef DEBUG
+    std::cerr << std::endl;
+    std::cerr << "After " << b << " iteration(s):" << std::endl;
+    //printSmooths(smooths);
+    std::cout << "numSmooths: " << numSmooths << std::endl;
+    std::cout << "rationalPrimes: " << rationalPrimes << std::endl;
+    std::cout << "algebraicPrimes: " << algebraicPrimes << std::endl;
+    std::cout << "quadChars: " << quadChars << std::endl;
+    std::cerr << std::endl;
+    #endif
 
    return entries;
 }

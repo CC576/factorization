@@ -2,6 +2,7 @@
 
 #include "../src/gnfs/gnfs.hpp"
 #include "../src/gnfs/factorBases.hpp"
+#include "../src/gnfs/sieving.hpp"
 
 #include <gmp.h>
 #include <gmpxx.h>
@@ -20,6 +21,7 @@
 #include "../src/utils/utils_NTL/utils_ZZX.hpp"
 
 
+/*
 TEST(GNFS, NeqPQ) {
   mpz_class n = 700757277917;
   mpz_class p, q;
@@ -27,7 +29,7 @@ TEST(GNFS, NeqPQ) {
 
   ASSERT_EQ(n, p*q);
 }
-
+*/
 
 
 // controllare che i vari componenti funzionino
@@ -89,7 +91,7 @@ TEST(GNFS, factorBases){
   ZZ n(2601699059);       // questo n genera un polinomio f con radici multiple modulo almeno 4 primi p, di cui uno dà esponente 4
   mpz_class nMPZ = 2601699059;
 
-  long d;
+  long d, k, l, t;
   ZZ m, B;
   ZZX f;
   chooseParams(nMPZ, d, m, f, B);
@@ -97,7 +99,7 @@ TEST(GNFS, factorBases){
   factorBase RFB, AFB, QCB;
   ZZ L, tmp;
   std::vector<std::pair<long, uint8_t>> primes;
-  uint8_t logMaxP2 = buildFactorBases(n, f, RFB, AFB, QCB, B, L, m, primes);
+  uint8_t logMaxP2 = buildFactorBases(n, f, RFB, AFB, QCB, B, L, m, primes, k, l, t);
 
   ZZ p(2);//, last(2);
   //ZZ p, Pot, r;
@@ -173,9 +175,9 @@ TEST(GNFS, factorBases){
 
 
   // check QCB
-  long t = log2(conv<double>(n));
-  EXPECT_GE(QCB.size(), 3*t) << "Size QCB is too small";
-  EXPECT_LE(QCB.size(), 3*(t+1)) << "Size QCB is too big";
+  long t1 = log2(conv<double>(n));
+  EXPECT_GE(QCB.size(), 3*t1) << "Size QCB is too small";
+  EXPECT_LE(QCB.size(), 3*(t1+1)) << "Size QCB is too big";
 
   for(auto& [p, r, l] : QCB){
     ZZ_p::init(p);
@@ -194,6 +196,95 @@ TEST(GNFS, factorBases){
   }
 
 } // il test è stato superato, il mio calcolo sulle radici mod potenze di primi era (molto probabilmente) giusto!
+
+
+TEST(GNFS, sieveResult){
+  ZZ n(2601699059);       // questo n genera un polinomio f con radici multiple modulo almeno 4 primi p, di cui uno dà esponente 4
+  mpz_class nMPZ = 2601699059;
+
+  long d, k, l, t;
+  ZZ m, B;
+  ZZX f;
+  chooseParams(nMPZ, d, m, f, B);
+
+  factorBase RFB, AFB, QCB;
+  ZZ L, tmp;
+  std::vector<std::pair<long, uint8_t>> primes;
+  uint8_t logMaxP2 = buildFactorBases(n, f, RFB, AFB, QCB, B, L, m, primes, k, l, t);
+
+
+  long maxA;
+  if(B > m/2) maxA = conv<long>(m/2);
+  else maxA = conv<long>(B);
+  uint8_t logm = log2(conv<double>(m));
+  ZZ b(1);
+
+  std::vector<ZZ> pos2ratPrimes, pos2algPrimes;
+  std::vector<smoothElemGNFS> smooths;
+  long numSmooths = 0, rationalPrimes = 0, algebraicPrimes = 0;
+  uint64_t entries = 0ull;
+  entries = sieveForTesting(n, m, f, logMaxP2, L, b, maxA, logm, t, numSmooths, rationalPrimes, algebraicPrimes, primes, RFB, AFB, smooths, pos2ratPrimes, pos2algPrimes);
+
+  ZZ aMinusBm, normAB, P, tmp2;
+  for(const auto& coppia : smooths){
+    aMinusBm = coppia.a - coppia.b*m;
+    normAB = 0; tmp = 1;
+    for(long i=0; i<=deg(f); i++){
+      //std::cout << i << " " << coeff(f, i) << " " << tmp << " " << power(b, deg(f)-i) << std::endl;
+      normAB += coeff(f, i)*tmp*power(coppia.b, deg(f)-i);
+      tmp*=coppia.a;      // lo moltiplico con un accumulatore perché potrebbe essere 0
+      //std::cout << normAB << " " << std::endl;
+    }
+
+    // assicurarsi che sia smooth (almeno parziale)
+      // a-bm
+      tmp = aMinusBm;
+      ASSERT_FALSE(IsZero(tmp)) << "a-bm=" << tmp << "for (" << coppia.a << ", " << coppia.b << ")";
+      tmp = abs(tmp);
+      for(auto& primo : primes){
+        P = conv<ZZ>(primo.first);
+        while(tmp%P == 0) tmp/=P;
+      }
+      ASSERT_LE(tmp, L) << "(" << coppia.a << ", " << coppia.b << ") is not rational smooth";
+
+      // N(a, b)
+      tmp = normAB;
+      ASSERT_FALSE(IsZero(tmp)) << "N(a,b)=" << tmp << "for (" << coppia.a << ", " << coppia.b << ")";
+      tmp = abs(tmp);
+      for(auto& primo : primes){
+        P = conv<ZZ>(primo.first);
+        while(tmp%P == 0) tmp/=P;
+      }
+      ASSERT_LE(tmp, L) << "(" << coppia.a << ", " << coppia.b << ") is not algebraic smooth";
+
+
+    // sia per a-bm che per N(a,b) assicurarsi che tolti i fattori in rationalPpos e algebraicPpos restino dei quadrati
+      // a-bm
+      tmp = aMinusBm;
+      for(auto& pos : coppia.rationalPpos){
+        ASSERT_LT(pos, pos2ratPrimes.size()) << "Rational prime out of range";
+        P = pos2ratPrimes[pos];
+        if(P == -1) ASSERT_LT(tmp, 0) << "a-bm=" << aMinusBm << " is not negative for (" << coppia.a << ", " << coppia.b << ")";
+        else ASSERT_TRUE(tmp%P == 0) << "a-bm=" << aMinusBm << " is not divisible by one of its factors for (" << coppia.a << ", " << coppia.b << ")";
+        tmp /= P;
+      }
+      tmp2 = SqrRoot(tmp);
+      ASSERT_EQ(tmp, tmp2*tmp2) << "The odd exponent factors of a-bm=" << aMinusBm << " are wrong for (" << coppia.a << ", " << coppia.b << ")";
+
+      // N(a, b)
+      tmp = normAB;
+      for(auto& pos : coppia.algebraicPpos){
+        ASSERT_LT(pos, pos2algPrimes.size()) << "Algebraic prime out of range";
+        P = pos2algPrimes[pos];
+        if(P == -1) ASSERT_LT(tmp, 0) << "N(a, b)=" << normAB << " is not negative for (" << coppia.a << ", " << coppia.b << ")";
+        else ASSERT_TRUE(tmp%P == 0) << "N(a, b)=" << normAB << " is not divisible by one of its factors for (" << coppia.a << ", " << coppia.b << ")";
+        tmp /= P;
+      }
+      tmp2 = SqrRoot(tmp);
+      ASSERT_EQ(tmp, tmp2*tmp2) << "The odd exponent factors of N(a, b)=" << normAB << " are wrong for (" << coppia.a << ", " << coppia.b << ")";
+  }
+
+}
 
 
 

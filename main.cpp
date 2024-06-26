@@ -139,6 +139,8 @@ int main(int argc, char** argv){
         //std::cout << factors << std::endl;
     }
 
+    //ZZ coso; ZZX_eval(coso, f, conv<ZZ>(-304));
+    //std::cout << "f valutato in -304: " << coso << std::endl;
 }//*/
 
 
