@@ -13,6 +13,7 @@
 #include "../utils/utils_NTL/hash_ZZ.hpp"
 #include "factorBases.hpp"
 #include "sieving.hpp"
+#include "computeSquareRoots.hpp"
 
 
 
@@ -111,39 +112,112 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
 
 
 
-
     // 3. dipendenze lineari
 
-    // 3.a preprocessing (trial division (già fatta in sieve), segno, e quadratic characters)
+    uint32_t nCols = numSmooths, nRows = rationalPrimes + algebraicPrimes + t;
+    std::vector<uint32_t> mat;
+    mat.reserve(entries<<1);        // num minimo di entries che ci saranno in mat, ma poi ci andranno anche i quadratic characters
+
+    // 3.a preprocessing (trial division (già fatta in sieve), segno (già fatto in sieve), e quadratic characters)
+    uint64_t entries2 = getMatrix(mat, smooths, rationalPrimes, algebraicPrimes, QCB);  // dopo la chiamata, in smooths resteranno solo le coppie (a,b) per risparmiare memoria
 
     // 3.b block lanczos
+    std::vector<uint64_t> result;
+    result.reserve(numSmooths);
+    uint32_t Nsol = blanczos(mat.data(), entries2, nRows, nCols, result.data());
+
+    uint64_t totSol = (1ull<<(Nsol -1ull)) - 1ull;      // un po' sus ma dovrebbe andare
+    totSol = (totSol<<1ull) + 1ull;
+    if(Nsol == 0) totSol = 0;
+
+    #ifdef DEBUG
+    std::cout << "Dimensione base nullspace trovata: " << Nsol << std::endl;
+    #endif
+    if(Nsol == 0) std::cerr << "\"Warning\": \"0 solutions were found\"" << std::endl;
 
 
+
+    ZZ_p y, x;
+    ZZ_pX fPrimeMod;
+    std::vector<uint32_t> U;     // indici delle coppie smooth prese
+    factorization ratFat, algFat;
+    std::vector<ZZ> IPB;        // inert prime base
+    ZZ prodInIPB(1);
+    ZZ approxSizeX, last(0), inertPrime;
 
 
     // iterare sulle dipendenze lineari trovate
+    for(uint64_t mask = 1ull; mask < totSol; mask++){
+        U.clear();
+        ratFat.clear();
+        algFat.clear();
 
-    // 4. radici
-
-    // 4.a radice razionale (includendo f'(m))
-
-    // 4.b trovare finite fields applicabili (volendo si può fare durante costruzione factor bases)/aggiungerne altri se non bastano
-
-    // 4.c radice in finite fields, metodo di Couveignes
-
-    // 4.d CRT
-
-
-
-
-    // 5. fattorizzare n
-
-    // 5.a GCD
-
-    // 5.b convertire p e q in mpz_class per metterli in fattore1 e fattore2
+        for(uint32_t i = 0u; i < numSmooths; i++){
+            bool taken = ((std::bitset<64> (mask & result[i]).count() % 2) == 1);
+            if(taken){
+                U.push_back(i);
+            }
+        }
+        #ifdef DEBUG
+        std::cout << "Dimensione di U: " << U.size() << std::endl;
+        #endif
 
 
+        // 4. radici
 
+        // 4.0 ottenere fattorizzazione del prodotto degli a-bm e fattorizzazione del prodotto delle norme
+        // = mappe da ZZ a long
+
+        computeFactorization(m, f, primes, U, smooths, ratFat);
+        computeFactorization(m, f, primes, U, smooths, algFat, true);
+
+
+        // 4.a radice razionale (includendo f'(m))
+        ZZ_p::init(n);
+        computeProdMod(n, ratFat, y);
+        y *= eval(conv<ZZ_pX>(fPrime), conv<ZZ_p>(m));
+
+
+        // 4.b trovare finite fields applicabili /aggiungerne altri se non bastano
+        estimateXSize(f, U, smooths, approxSizeX);
+        #ifdef DEBUG
+        std::cout << "Stima dimensione di x: " << approxSizeX << std::endl;
+        // 14272809293693672760236472311799071135480407340249456409739060630501718744859577807931963255944303817439600981719075140666405677019619267901277870858178618119743873407633109288774679593737780130609434906310650203342053608298307114931428407828641589656896990339587685062445103299971959988673570146435627636662672823036279746539829357096909005032932471318588477554189580069502760522665091841972483256163067600440067555756560726271436226408770502440639815161267283733103462972385810397545849300000933799258565095946576701402211193850929303677608722460439167668820423613379887943909376
+        #endif
+        while(prodInIPB < approxSizeX){
+            findNextInertPrime(f, last, inertPrime);
+
+            IPB.push_back(inertPrime);
+            prodInIPB*=inertPrime;
+            last = inertPrime;
+
+            #ifdef DEBUG
+            std::cout << "Found an inert prime: " << inertPrime << std::endl;
+            #endif
+        }
+
+        #ifdef DEBUG
+        std::cout << "IPB size: " << IPB.size() << std::endl;
+        #endif
+
+
+        // 4.c radice in finite fields, metodo di Couveignes
+
+
+
+        // 4.d CRT
+
+
+
+
+        // 5. fattorizzare n
+
+        // 5.a GCD
+
+        // 5.b convertire p e q in mpz_class per metterli in fattore1 e fattore2
+
+
+    }
 
     // 5. gestire fail...
 
@@ -151,6 +225,51 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
 }
 
 
+
+
+
+uint64_t getMatrix(std::vector<uint32_t>& mat, std::vector<smoothElemGNFS>& smooths, long numRatPrimes, long numAlgPrimes, const factorBase& QCB){
+    // dopo la chiamata, in smooths resteranno solo le coppie (a,b) per risparmiare memoria
+    uint64_t entries = 0ull;
+
+    uint32_t i = 0, offset;
+    for(auto& coppia : smooths){
+        // inserire fattori razionali
+        offset = 0;
+        for(auto& pos : coppia.rationalPpos){
+            entries++;
+            mat.push_back(pos + offset);     // la riga è l'indice del primo
+            mat.push_back(i);       // la colonna è l'indice del numero smooth
+        }
+        coppia.rationalPpos.clear();
+
+
+        // inserire fattori algebrici
+        offset = numRatPrimes;
+        for(auto& pos : coppia.rationalPpos){
+            entries++;
+            mat.push_back(pos + offset);     // la riga è l'indice del primo
+            mat.push_back(i);       // la colonna è l'indice del numero smooth
+        }
+        coppia.algebraicPpos.clear();
+
+        // inserire quadratic characters
+        offset += numAlgPrimes;
+        long j = 0;
+        for(auto& qc : QCB){
+            if(Jacobi(coppia.a - coppia.b * qc.r, qc.p) < 0){       // se il simbolo di Jacobi è -1, aggiungiamo il quadratic character nella matrice
+                entries++;
+                mat.push_back(j + offset);      // la riga è l'indice del primo
+                mat.push_back(i);               // la colonna è l'indice del numero smooth
+            }
+
+            j++;
+        }
+        i++;
+    }
+
+    return entries;
+}
 
 
 uint64_t sieve(const ZZ& n, const ZZ& m, const ZZX& f, const uint8_t logMaxP2, const ZZ& L, ZZ& b, const long maxA, const uint8_t logm, const long quadChars, long& numSmooths, long& rationalPrimes, long& algebraicPrimes,  const primeList& primes, const factorBase& RFB, const factorBase& AFB, std::vector<smoothElemGNFS>& smooths){

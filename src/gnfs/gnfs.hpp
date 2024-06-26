@@ -11,7 +11,7 @@
 #include <vector>
 #include <unordered_map>
 //#include <map>                  //// !!! da rimuovere quando avrò l'hash sulle pair di ZZ !!!
-//#include <bitset>
+#include <bitset>
 
 #include <NTL/ZZ.h>
 #include <NTL/ZZX.h>
@@ -40,6 +40,8 @@ struct smoothElemGNFS{
         a = _a; b = _b;
     }
 };
+
+typedef std::unordered_map<ZZ, long> factorization;    // primo-esponente; non conta -1
 typedef std::vector<std::pair<long, uint8_t>> primeList;
 typedef std::vector<ideal> factorBase;
 typedef std::vector<uint8_t> sieveArray;
@@ -51,5 +53,6 @@ void chooseParams(const mpz_class& n, long& d, ZZ& m, ZZX& f, ZZ& B);
 bool findEarlyFactors(const ZZ& n, ZZ& fattore, const ZZX& f, ZZX fPrime, const ZZ& m);
 uint8_t buildFactorBases(const ZZ& n, const ZZX& f, factorBase& RFB, factorBase& AFB, factorBase& QCB, const ZZ& B, ZZ& L, ZZ& m, primeList& primes, long& k, long& l, long& t);
 uint64_t sieve(const ZZ& n, const ZZ& m, const ZZX& f, const uint8_t logMaxP2, const ZZ& L, ZZ& b, const long maxA, const uint8_t logm, const long quadChars, long& numSmooths, long& rationalPrimes, long& algebraicPrimes,  const primeList& primes, const factorBase& RFB, const factorBase& AFB, std::vector<smoothElemGNFS>& smooths);   // restituisce il numero di entries
+uint64_t getMatrix(std::vector<uint32_t>& mat, std::vector<smoothElemGNFS>& smooths, long numRatPrimes, long numAlgPrimes, const factorBase& QCB);
 
 #endif
