@@ -104,10 +104,12 @@ long lineSieve(const ZZX& f, const uint8_t logMaxP2, const ZZ& b, const long max
 
 std::pair<bool, bool> trialDivide(const ZZ& a, const ZZ &b, const ZZ& num, const ZZ& largePrimeBound, const primeList& primes, std::vector<std::pair<ZZ, ZZ>>& fattori){
     //  dice se l'elemento era smooth (anche partialmente) o no e totalmente smooth o parziale
-     thread_local ZZ tmp, P, r;
-     tmp = num;
+    fattori.clear();
 
-     if(tmp < 0){       // assumo che -1 sia già tra i "primi" usati
+    thread_local ZZ tmp, P, r;
+    tmp = num;
+
+    if(tmp < 0){       // assumo che -1 sia già tra i "primi" usati
         fattori.push_back({conv<ZZ>(-1), conv<ZZ>(0)});
         tmp = -tmp;
     }
@@ -117,7 +119,12 @@ std::pair<bool, bool> trialDivide(const ZZ& a, const ZZ &b, const ZZ& num, const
         P = conv<ZZ>(p);
         if(tmp%P != 0) continue;
 
-        r = (-a*InvMod(b%P, P))%P;        // non dovrebbe dare errore perché abbiamo escluso le coppie con a e b non coprimi
+        /*#ifdef DEBUG
+        if(b%P == 0){
+            std::cout << a << " " << b << " " << tmp << std::endl;
+        }
+        #endif*/
+        r = (a*InvMod(b%P, P))%P;        // non dovrebbe dare errore perché abbiamo escluso le coppie con a e b non coprimi
         bool e = false;
         while(tmp%P == 0){
             tmp/=P;
@@ -135,7 +142,7 @@ std::pair<bool, bool> trialDivide(const ZZ& a, const ZZ &b, const ZZ& num, const
         return std::make_pair(true, true);
     }
     // tmp dev'essere primo perché è >maxP e <(maxP)^2 e non divisibile da alcun P fino a maxP
-    r = (-a*InvMod(b%P, tmp))%tmp;
+    r = (a*InvMod(b%tmp, tmp))%tmp;
     fattori.push_back({tmp, r});
 
     return std::make_pair(true, false);
@@ -143,7 +150,8 @@ std::pair<bool, bool> trialDivide(const ZZ& a, const ZZ &b, const ZZ& num, const
 
 
 void moveFactors(std::vector<uint32_t>& indici, std::vector<std::pair<ZZ, ZZ>>& fattori, const ZZ& maxP, ZZ& maxNewP, idealMap& usedPrimes, long& newPrimes){
-    for(auto& fattore : fattori){
+    indici.clear();
+    for(const auto& fattore : fattori){
         if(usedPrimes.count(fattore) > 0){
             indici.push_back(usedPrimes[fattore]);
         } else{

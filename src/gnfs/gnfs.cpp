@@ -76,7 +76,15 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
     long k, l, t;                   // dimensioni di RFB, AFB e QCB senza potenze
     ZZ L;                                                           // large prime bound, forse serve solo dentro buildFactorBases
     primeList primes;
-    uint8_t logMaxP2 = buildFactorBases(n, f, RFB, AFB, QCB, B, L, m, primes, k, l, t);    // log of large prime bound
+    uint8_t logMaxP2;
+    std::tie(logMaxP2, foundEarlyFactor) = buildFactorBases(n, f, RFB, AFB, QCB, B, L, m, primes, k, l, t);    // log of large prime bound
+    if(foundEarlyFactor){
+        std:: cout << "Found early factors of n among small primes" << std::endl;
+        mpz_from_ZZ(L, fattore1);
+        fattore1 = abs(fattore1);
+        fattore2 = nMPZ/fattore1;
+        return;
+    }
 
     #ifdef DEBUG
     std::cout << "Number of primes: " << primes.size() << std::endl;
@@ -95,7 +103,7 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
     // 2. sieving
 
     long maxA;                                  // metto un limite per assicurarmi che sia un long e che non si ripetano valori nel sieving razionale
-    if(B > m/2) maxA = conv<long>(m/2);         // |a|<=m/2 --> |a-bm| <= m(1/2+b) --> log|-a-bm| <= logm + log(1/2+b) < logm + logb + 1
+    if(B >= m/2) maxA = conv<long>((m-1)/2);         // |a|<=m/2 --> |a-bm| <= m(1/2+b) --> log|-a-bm| <= logm + log(1/2+b) < logm + logb + 1
     else maxA = conv<long>(B);                  //          --> |a-bm| >= m(b-1/2) --> log|a-bm| >= logm + log(b-1/2) >= logm + logb - 1
                                                 // --> uso logm + logb + 1 - logMaxP2 come quantità da raggiungere nel sieving razionale
     uint8_t logm = log2(conv<double>(m));
@@ -108,8 +116,15 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
     std::vector<smoothElemGNFS> smooths;
     long numSmooths = 0, rationalPrimes = 0, algebraicPrimes = 0;
     uint64_t entries = 0ull;
-    entries = sieve(n, m, f, logMaxP2, L, b, maxA, logm, t, numSmooths, rationalPrimes, algebraicPrimes, primes, RFB, AFB, smooths);
-
+    ZZ fatt1sieve(0);
+    std::tie(entries, fatt1sieve) = sieve(n, m, f, logMaxP2, L, b, maxA, logm, t, numSmooths, rationalPrimes, algebraicPrimes, primes, RFB, AFB, smooths);
+    if(fatt1sieve != 0){
+        std:: cout << "Found early factors of n among large primes" << std::endl;
+        mpz_from_ZZ(fatt1sieve, fattore1);
+        fattore1 = abs(fattore1);
+        fattore2 = nMPZ/fattore1;
+        return;
+    }
 
 
     // 3. dipendenze lineari
@@ -123,7 +138,7 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
 
     // 3.b block lanczos
     std::vector<uint64_t> result;
-    result.reserve(numSmooths);
+    result.resize(numSmooths);
     uint32_t Nsol = blanczos(mat.data(), entries2, nRows, nCols, result.data());
 
     uint64_t totSol = (1ull<<(Nsol -1ull)) - 1ull;      // un po' sus ma dovrebbe andare
@@ -143,7 +158,7 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
     factorization ratFat, algFat;
     std::vector<ZZ> IPB;        // inert prime base
     ZZ prodInIPB(1);
-    ZZ approxSizeX, last(0), inertPrime;
+    ZZ approxSizeX, last(deg(f)), inertPrime;
 
 
     // iterare sulle dipendenze lineari trovate
@@ -174,14 +189,18 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
 
         // 4.a radice razionale (includendo f'(m))
         ZZ_p::init(n);
+        y = 1;
         computeProdMod(n, ratFat, y);
         y *= eval(conv<ZZ_pX>(fPrime), conv<ZZ_p>(m));
+        if(y==0){
+            std::cout << "f'(m) mod n: " << eval(conv<ZZ_pX>(fPrime), conv<ZZ_p>(m)) << std::endl;
+        }
 
 
         // 4.b trovare finite fields applicabili /aggiungerne altri se non bastano
         estimateXSize(f, U, smooths, approxSizeX);
         #ifdef DEBUG
-        std::cout << "Stima dimensione di x: " << approxSizeX << std::endl;
+        //std::cout << "Stima dimensione di x: " << approxSizeX << std::endl;
         // 14272809293693672760236472311799071135480407340249456409739060630501718744859577807931963255944303817439600981719075140666405677019619267901277870858178618119743873407633109288774679593737780130609434906310650203342053608298307114931428407828641589656896990339587685062445103299971959988673570146435627636662672823036279746539829357096909005032932471318588477554189580069502760522665091841972483256163067600440067555756560726271436226408770502440639815161267283733103462972385810397545849300000933799258565095946576701402211193850929303677608722460439167668820423613379887943909376
         #endif
         while(prodInIPB < approxSizeX){
@@ -191,9 +210,17 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
             prodInIPB*=inertPrime;
             last = inertPrime;
 
-            #ifdef DEBUG
+            /*#ifdef DEBUG
             std::cout << "Found an inert prime: " << inertPrime << std::endl;
-            #endif
+            #endif*/
+
+            if(n%inertPrime == 0){
+                std:: cout << "Found early factors of n among inert primes" << std::endl;
+                mpz_from_ZZ(inertPrime, fattore1);
+                fattore1 = abs(fattore1);
+                fattore2 = nMPZ/fattore1;
+                return;
+            }
         }
 
         #ifdef DEBUG
@@ -201,22 +228,65 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
         #endif
 
 
-        // 4.c radice in finite fields, metodo di Couveignes
+        // 4.c radice in finite fields, metodo di Couveignes, 4.d e contemporaneamente CRT
 
+        ZZ kl, Pl, bk;//, esp1, esp2;
+        ZZ_pX betaL;
+        //ZZ_p tmpP;
 
+        ZZX esse(0), zeta(0);
+        std::vector<double> kappa(deg(f)+1, 0);
 
-        // 4.d CRT
+        for(auto& l : IPB){
+            ZZ_pPush push(l);       // serve per calcolare fl e poi lavorare in ZZ_pE
 
+            Pl = prodInIPB/l;
+            kl = InvMod(Pl%l, l);
 
+            compSquareRootInGF(f, l, fPrime, algFat, U, smooths, betaL);
 
+            for(long i=0; /*i<=deg(f) &&*/ i<=deg(betaL); i++){
+                bk =(conv<ZZ>(coeff(betaL, i))*kl)%l;
+
+                kappa[i] += conv<double>(bk)/conv<double>(l);
+                SetCoeff(esse, i, (coeff(esse, i)+(bk*Pl)%n)%n);
+            }
+
+        }
+
+        for(long i=0; i<=deg(f); i++){
+             SetCoeff(zeta, i, conv<ZZ>(kappa[i] + 0.5));   // aggiunto 0.5 per ottenere rounding invece di floor
+        }
+
+        ZZ_p::init(n);
+        ZZ_pX pol;
+        pol = conv<ZZ_pX>(esse) - conv<ZZ_p>(prodInIPB)*conv<ZZ_pX>(zeta);
+        x = eval(pol, conv<ZZ_p>(m));
+
+        std::cout << x*x-y*y << std::endl;
 
         // 5. fattorizzare n
 
         // 5.a GCD
+        ZZ fatt1, fatt2;
+        fatt1 = abs(GCD(conv<ZZ>(x-y), n));
+        fatt2 = abs(GCD(conv<ZZ>(x+y), n));
+        std::cout << fatt1 << " " << fatt2 << std::endl;
+        if(fatt1==n && fatt2 == n){
+            std::cout << "x: " << x << ", y: " << y << std::endl;
+        }
 
+        if(fatt1 == n) fatt1 = n/fatt2;     // potrebbero essere n e q --> vogliamo p e q
+        if(fatt2 == n) fatt2 = n/fatt1;     // potrebbero essere p ed n --> vogliamo p e q
+
+        if(fatt1 != 1 && fatt2 != 1){         // adesso se sono entrambi diversi da 1 sono anche entrambi diversi da n
         // 5.b convertire p e q in mpz_class per metterli in fattore1 e fattore2
+            mpz_from_ZZ(fatt1, fattore1);
+            mpz_from_ZZ(fatt2, fattore2);
 
-
+            std::cout << "Trovati fattori in posizione: " << mask << std::endl;
+            return;
+        }
     }
 
     // 5. gestire fail...
@@ -238,15 +308,15 @@ uint64_t getMatrix(std::vector<uint32_t>& mat, std::vector<smoothElemGNFS>& smoo
         offset = 0;
         for(auto& pos : coppia.rationalPpos){
             entries++;
-            mat.push_back(pos + offset);     // la riga è l'indice del primo
-            mat.push_back(i);       // la colonna è l'indice del numero smooth
+            mat.push_back(pos + offset);        // la riga è l'indice del primo
+            mat.push_back(i);                   // la colonna è l'indice del numero smooth
         }
         coppia.rationalPpos.clear();
 
 
         // inserire fattori algebrici
         offset = numRatPrimes;
-        for(auto& pos : coppia.rationalPpos){
+        for(auto& pos : coppia.algebraicPpos){
             entries++;
             mat.push_back(pos + offset);     // la riga è l'indice del primo
             mat.push_back(i);       // la colonna è l'indice del numero smooth
@@ -257,7 +327,15 @@ uint64_t getMatrix(std::vector<uint32_t>& mat, std::vector<smoothElemGNFS>& smoo
         offset += numAlgPrimes;
         long j = 0;
         for(auto& qc : QCB){
-            if(Jacobi(coppia.a - coppia.b * qc.r, qc.p) < 0){       // se il simbolo di Jacobi è -1, aggiungiamo il quadratic character nella matrice
+            thread_local ZZ coso, coso2;
+            coso = Jacobi((coppia.a - coppia.b * qc.r)%qc.p, qc.p);
+            #ifdef DEBUG
+            coso2 = PowerMod((coppia.a - coppia.b * qc.r)%qc.p, (qc.p-1)/2, qc.p);
+            if(coso2 > 1) coso2 -= qc.p;
+            //if(coso != coso2) std::cout << "coso: " << coso << ", coso2: " << coso2 << std::endl;
+            assert(coso == coso2);
+            #endif
+            if(coso < 0){       // se il simbolo di Jacobi è -1, aggiungiamo il quadratic character nella matrice
                 entries++;
                 mat.push_back(j + offset);      // la riga è l'indice del primo
                 mat.push_back(i);               // la colonna è l'indice del numero smooth
@@ -272,7 +350,7 @@ uint64_t getMatrix(std::vector<uint32_t>& mat, std::vector<smoothElemGNFS>& smoo
 }
 
 
-uint64_t sieve(const ZZ& n, const ZZ& m, const ZZX& f, const uint8_t logMaxP2, const ZZ& L, ZZ& b, const long maxA, const uint8_t logm, const long quadChars, long& numSmooths, long& rationalPrimes, long& algebraicPrimes,  const primeList& primes, const factorBase& RFB, const factorBase& AFB, std::vector<smoothElemGNFS>& smooths){
+std::pair<uint64_t, ZZ> sieve(const ZZ& n, const ZZ& m, const ZZX& f, const uint8_t logMaxP2, const ZZ& L, ZZ& b, const long maxA, const uint8_t logm, const long quadChars, long& numSmooths, long& rationalPrimes, long& algebraicPrimes,  const primeList& primes, const factorBase& RFB, const factorBase& AFB, std::vector<smoothElemGNFS>& smooths){
     uint64_t entries = 0ULL;      // serve davvero?
 
     #ifdef DEBUG
@@ -343,34 +421,49 @@ uint64_t sieve(const ZZ& n, const ZZ& m, const ZZX& f, const uint8_t logMaxP2, c
             // trial division per a-bm
             aMinusBm = a-b*m;
             std::pair<bool, bool> isSmooth = trialDivide(a, b, aMinusBm, L, primes, fattoriRat);
+            //std::cout << "hereherehere" << std::endl;
             if(!isSmooth.first){
                 //smooths.pop_back();
                 //fattoriRat.clear();
 
-                /*
-                #ifdef DEBUG
+
+                /*#ifdef DEBUG
                 if(b%modForPrint == 0)
                     std::cout << "b: " << b << "\t\tStuck here: not rat smooth" << std::endl;
                 #endif
                 //*/
                 continue;
             }
+            if(!isSmooth.second){
+                if(n%fattoriRat.back().first == 0){
+                    return std::make_pair(0, fattoriRat.back().first);
+                }
+            }
             bool wasPartialSmooth = !isSmooth.second;
 
             // trial division per N(a+b*theta)
+            #ifdef DEBUG
+            if(IsZero(normAB)) std::cout << "Norm of (" << a << ", " << b << ") is zero\nf is " << f << std::endl;
+            #endif
             ZZX_eval(normAB, fb, a);
             isSmooth = trialDivide(a, b, normAB, L, primes, fattoriAlg);
+            //std::cout << "hereherehere2" << std::endl;
             if(!isSmooth.first){
                 //smooths.pop_back();
                 //fattoriRat.clear();
                 //fattoriAlg.clear();
-                /*
-                #ifdef DEBUG
+
+                /*#ifdef DEBUG
                 if(b%modForPrint == 0)
                     std::cout << "b: " << b << "\t\tStuck here: not alg smooth" << std::endl;
                 #endif
                 //*/
                 continue;
+            }
+            if(!isSmooth.second){
+                if(n%fattoriAlg.back().first == 0){
+                    return std::make_pair(0, fattoriAlg.back().first);
+                }
             }
 
             smooths.push_back({a, b});
@@ -418,14 +511,17 @@ uint64_t sieve(const ZZ& n, const ZZ& m, const ZZX& f, const uint8_t logMaxP2, c
     std::cerr << std::endl;
     #endif
 
-   return entries;
+   return std::make_pair(entries, conv<ZZ>(0));
 }
 
 
 
-uint8_t buildFactorBases(const ZZ& n, const ZZX& f, factorBase& RFB, factorBase& AFB, factorBase& QCB, const ZZ& B, ZZ& L, ZZ& m, primeList& primes, long& k, long& l, long& t){
-    uint8_t logMaxP = genPrimesList(primes, B);
+std::pair<uint8_t, bool> buildFactorBases(const ZZ& n, const ZZX& f, factorBase& RFB, factorBase& AFB, factorBase& QCB, const ZZ& B, ZZ& L, ZZ& m, primeList& primes, long& k, long& l, long& t){
+    uint8_t logMaxP;
+    bool foundFactor = false;
+    std::tie(logMaxP, foundFactor) = genPrimesList(n, primes, B);
     L = primes.back().first;
+    if(foundFactor) return std::make_pair(logMaxP, foundFactor);
     L*=L;
 
     // build RFB
@@ -446,11 +542,15 @@ uint8_t buildFactorBases(const ZZ& n, const ZZX& f, factorBase& RFB, factorBase&
     // pol f, assicurarsi di non beccare radici multiple
     // solo q>L, e bisogna generarne 3*log2(n)  (o meno?)
     long t1 = 3*log2(conv<double>(n));
-    t = buildQCB(QCB, f, L, t1);
+    std::tie(t, foundFactor) = buildQCB(n, QCB, f, L, t1);
+    if(foundFactor){
+        L = QCB.back().p;
+        return std::make_pair(logMaxP, foundFactor);
+    }
 
     //std::cout << "built QCB" << std::endl;
 
-    return (logMaxP << 1);      // log di L
+    return std::make_pair(logMaxP << 1, false);      // log di L
 }
 
 
@@ -458,7 +558,7 @@ uint8_t buildFactorBases(const ZZ& n, const ZZX& f, factorBase& RFB, factorBase&
 
 
 
-bool findEarlyFactors(const ZZ& n, ZZ& fattore, const ZZX& f, ZZX fPrime, const ZZ& m){
+bool findEarlyFactors(const ZZ& n, ZZ& fattore, const ZZX& f, ZZX& fPrime, const ZZ& m){
     // provare a fattorizzare f
     // controllare gcd(m, n) e gcd(f'(m), n)
     // calcolare f'

@@ -3,19 +3,26 @@
 #include <NTL/ZZ_pXFactoring.h>
 #include "../utils/utils_NTL/utils_ZZX.hpp"
 
-uint8_t genPrimesList(primeList& primes, const ZZ& B){
+std::pair<uint8_t, bool> genPrimesList(const ZZ& n, primeList& primes, const ZZ& B){
     PrimeSeq s;
     long p;
     uint8_t logMaxP = 1, log2p;
+    bool foundFactor = false;
 
     p = s.next();
     while (p <= B) {
         log2p = (uint8_t) log2(p);
         primes.push_back({p, log2p});
         logMaxP = std::max(logMaxP, log2p);
+
+        if(n%p == 0){
+            foundFactor = true;
+            break;
+        }
+
         p = s.next();
     }
-    return logMaxP;
+    return std::make_pair(logMaxP, foundFactor);
 }
 
 
@@ -68,9 +75,10 @@ void rootsOfFmodP(const ZZX& f, const ZZ p, std::vector<ZZ>& roots, bool multipl
 }
 
 
-long buildQCB(factorBase& QCB, const ZZX&f, const ZZ& L, long t){
+std::pair<long, bool> buildQCB(const ZZ& n, factorBase& QCB, const ZZX&f, const ZZ& L, long t){
     ZZ last = L, q;
     std::vector<ZZ> roots;
+    bool foundFactor = false;
 
     long found = 0;
     while(found < t){
@@ -90,8 +98,13 @@ long buildQCB(factorBase& QCB, const ZZX&f, const ZZ& L, long t){
 
         last = q;
         //std::cout << q << " " << found << std::endl;
+
+        if(n%q == 0){
+            foundFactor = true;
+            break;
+        }
     }
-    return found;
+    return std::make_pair(found, foundFactor);
 }
 
 

@@ -23,7 +23,7 @@
 #include "../src/utils/utils_NTL/utils_ZZX.hpp"
 
 
-/*
+
 TEST(GNFS, NeqPQ) {
   mpz_class n = 700757277917;
   mpz_class p, q;
@@ -31,7 +31,7 @@ TEST(GNFS, NeqPQ) {
 
   ASSERT_EQ(n, p*q);
 }
-*/
+
 
 
 // controllare che i vari componenti funzionino
@@ -101,7 +101,7 @@ TEST(GNFS, factorBases){
   factorBase RFB, AFB, QCB;
   ZZ L, tmp;
   std::vector<std::pair<long, uint8_t>> primes;
-  uint8_t logMaxP2 = buildFactorBases(n, f, RFB, AFB, QCB, B, L, m, primes, k, l, t);
+  auto [logMaxP2, _] = buildFactorBases(n, f, RFB, AFB, QCB, B, L, m, primes, k, l, t);
 
   ZZ p(2);//, last(2);
   //ZZ p, Pot, r;
@@ -212,7 +212,7 @@ TEST(GNFS, sieveResult){
   factorBase RFB, AFB, QCB;
   ZZ L, tmp;
   std::vector<std::pair<long, uint8_t>> primes;
-  uint8_t logMaxP2 = buildFactorBases(n, f, RFB, AFB, QCB, B, L, m, primes, k, l, t);
+  auto [logMaxP2, _] = buildFactorBases(n, f, RFB, AFB, QCB, B, L, m, primes, k, l, t);
 
 
   long maxA;
@@ -305,7 +305,7 @@ TEST(GNFS, linearDependencies){
   factorBase RFB, AFB, QCB;
   ZZ L, tmp;
   std::vector<std::pair<long, uint8_t>> primes;
-  uint8_t logMaxP2 = buildFactorBases(n, f, RFB, AFB, QCB, B, L, m, primes, k, l, t);
+  auto [logMaxP2, _] = buildFactorBases(n, f, RFB, AFB, QCB, B, L, m, primes, k, l, t);
 
 
   long maxA;
@@ -318,14 +318,15 @@ TEST(GNFS, linearDependencies){
   std::vector<smoothElemGNFS> smooths;
   long numSmooths = 0, rationalPrimes = 0, algebraicPrimes = 0;
   uint64_t entries = 0ull;
-  entries = sieve(n, m, f, logMaxP2, L, b, maxA, logm, t, numSmooths, rationalPrimes, algebraicPrimes, primes, RFB, AFB, smooths);
+  entries = sieve(n, m, f, logMaxP2, L, b, maxA, logm, t, numSmooths, rationalPrimes, algebraicPrimes, primes, RFB, AFB, smooths)
+                    .first;
 
   uint32_t nCols = numSmooths, nRows = rationalPrimes + algebraicPrimes + t;
   std::vector<uint32_t> mat;
   mat.reserve(entries<<1);
   uint64_t entries2 = getMatrix(mat, smooths, rationalPrimes, algebraicPrimes, QCB);
   std::vector<uint64_t> result;
-  result.reserve(numSmooths);
+  result.resize(numSmooths);
   uint32_t Nsol = blanczos(mat.data(), entries2, nRows, nCols, result.data());
 
   uint64_t totSol = (1ull<<(Nsol -1ull)) - 1ull;
@@ -353,8 +354,10 @@ TEST(GNFS, linearDependencies){
         if(!algebraic){
             num = smooths[i].a - smooths[i].b * m;
         } else{
-            for(long i=0; i<=deg(f); i++){
-                num += coeff(f, i)*tmp*power(smooths[i].b, deg(f)-i);
+            num=0;
+            tmp=1;
+            for(long j=0; j<=deg(f); j++){
+                num += coeff(f, j)*tmp*power(smooths[i].b, deg(f)-j);
                 tmp*=smooths[i].a;      // lo moltiplico con un accumulatore perché potrebbe essere 0
             }
         }
@@ -375,7 +378,7 @@ TEST(GNFS, linearDependencies){
     }
 
     for(auto& coso : ratFat){
-        EXPECT_TRUE((coso.second % 2) == 0) << "Prime p=" << coso.first << "has odd degree in the product of a-bm";
+        ASSERT_TRUE((coso.second % 2) == 0) << "Prime p=" << coso.first << " has odd degree in the product of a-bm";
     }
 
 
@@ -386,8 +389,10 @@ TEST(GNFS, linearDependencies){
         if(!algebraic){
             num = smooths[i].a - smooths[i].b * m;
         } else{
-            for(long i=0; i<=deg(f); i++){
-                num += coeff(f, i)*tmp*power(smooths[i].b, deg(f)-i);
+            num=0;
+            tmp=1;
+            for(long j=0; j<=deg(f); j++){
+                num += coeff(f, j)*tmp*power(smooths[i].b, deg(f)-j);
                 tmp*=smooths[i].a;      // lo moltiplico con un accumulatore perché potrebbe essere 0
             }
         }
@@ -408,7 +413,8 @@ TEST(GNFS, linearDependencies){
     }
 
     for(auto& coso : algFat){
-        EXPECT_TRUE((coso.second % 2) == 0) << "Prime p=" << coso.first << "has odd degree in the product of N(a, b)";
+        //std::cout<<coso.first<<" "<<coso.second<<" yee\n";
+        EXPECT_TRUE((coso.second % 2) == 0) << "Prime p=" << coso.first << " has odd degree in the product of N(a, b)";
     }
 
 

@@ -326,7 +326,7 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
     #endif
 
     std::vector<uint64_t> result;
-    result.reserve(numSmooths);
+    result.resize(numSmooths);
     uint32_t Nsol = blanczos(mat.data(), entries, usedPrimes.size(), numSmooths, result.data());
     #ifdef DEBUG
     std::cerr << Nsol << std::endl;
