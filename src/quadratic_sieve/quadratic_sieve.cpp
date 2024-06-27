@@ -417,7 +417,7 @@ void quadratic_sieve(mpz_class& n, mpz_class& fattore1, mpz_class& fattore2){
     //std::cerr<<"Something went wrong"<<std::endl;
     if(printStats){
         std::clog << "\"Dim of sieving interval\": " << (base - sqrt(n) - 1) << ", ";
-        std::clog << "\"outcome\": \"Failed all 10 tries\"";
+        std::clog << "\"outcome\": \"Failed all 20 tries\"";
         std::clog << "}\n";
     }
 }

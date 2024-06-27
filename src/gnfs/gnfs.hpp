@@ -10,7 +10,7 @@
 #include <utility>
 #include <vector>
 #include <unordered_map>
-//#include <map>                  //// !!! da rimuovere quando avrò l'hash sulle pair di ZZ !!!
+//#include <map>
 #include <bitset>
 
 #include <NTL/ZZ.h>
@@ -20,9 +20,6 @@
 //#include <NTL/ZZ_pE.h>
 #include "../utils/utils_NTL/hash_ZZ.hpp"
 using namespace NTL;
-//#define InvMod(a,b) ([](xaaa,yaaa) { std::cout<<__LINE__<<" InvMod "<<(xaaa)<<" "<<(yaaa)<<std::endl; auto zaaa = InvMod(xaaa,yaaa); std::cout<<"  =  "<<z<<std::endl; return zaaa; }((a), (b)))
-//#define InvMod(a,b) ((std::cout<<__FILE__<<":"<<__LINE__<<" InvMod "<<(a)<<" "<<(b)<<"\n"), InvMod((a),(b)))
-
 
 struct ideal{                           // first degree prime ideal o una potenza
     ZZ p;                               // p rappresenta "l'incremento": può essere p primo anche se si tratta di una potenza di ideale (in quel caso logP = e*log_2(p))

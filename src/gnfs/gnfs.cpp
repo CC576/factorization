@@ -6,8 +6,9 @@
 #include<iostream>
 #endif
 #include<iostream>
-#include<sys/resource.h>
+//#include<sys/resource.h>
 
+#include "../utils/statsVar.hpp"
 #include "../utils/utils_mpz/mpz_ZZ.hpp"
 #include "../utils/utils_NTL/utils_ZZX.hpp"
 #include "../utils/utils_NTL/hash_ZZ.hpp"
@@ -19,6 +20,12 @@
 
 void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
     // assume n>216, n dispari, n composto, n non potenza
+
+    timeval t1;
+    if(printStats){
+        std::clog << "{";
+        initT1(t1);
+    }
 
 
     // 1. preparazione
@@ -40,15 +47,28 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
     ZZX f;
     chooseParams(nMPZ, d, m, f, B);
 
+    if(printStats){
+        printElapsedTime("Time to choose parameters", t1);
+        std::clog << "\"m\": " << m << ", "
+                    << "\"B\": " << B << ", "
+                    << "\"d\": " << d << ", "
+                    << "\"f\": ["
+                    ;
+        for(long i = 0; i<=d; i++){
+            std::clog << coeff(f, i);
+            if(i < d) std::clog << ", ";
+        }
+        std::clog << "], ";
+    }
     #ifdef DEBUG
-    std:: cout << "m: " << m << std::endl;
+    std::cout << "m: " << m << std::endl;
     std::cout << "f: " << f << std::endl;
     {
         ZZ coso;
         ZZX_eval(coso, f, m);
         std::cout << "f(m)==n? " << ((coso==n) ? "true" : "false") <<std::endl;
     }
-    std:: cout << "B: " << B << std::endl;
+    std::cout << "B: " << B << std::endl;
     #endif
 
     ZZX fPrime;
@@ -59,14 +79,19 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
     bool foundEarlyFactor = findEarlyFactors(n, tmp, f, fPrime, m);
     #ifdef DEBUG
     if(foundEarlyFactor)
-        std:: cout << "Found early factors of n" << std::endl;
+        std::cout << "Found early factors of n" << std::endl;
     else
-        std:: cout << "Did not find early factors of n" << std::endl;
+        std::cout << "Did not find early factors of n" << std::endl;
     #endif
     if(foundEarlyFactor){
+
         mpz_from_ZZ(tmp, fattore1);
         fattore1 = abs(fattore1);
         fattore2 = nMPZ/fattore1;
+
+        std::clog << "\"outcome\": \"Found early factors from parameters\"";
+        std::clog << "}\n";
+
         return;
     }
 
@@ -78,11 +103,32 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
     primeList primes;
     uint8_t logMaxP2;
     std::tie(logMaxP2, foundEarlyFactor) = buildFactorBases(n, f, RFB, AFB, QCB, B, L, m, primes, k, l, t);    // log of large prime bound
+    if(printStats){
+        // stampare tempo per build factor base
+        printElapsedTime("Time to build factor bases", t1);
+        //std::cout << std::endl << t1.tv_usec << std::endl;
+
+        std::clog   << "\"Large prime bound\": " << L << ", "
+                    << "\"RFB size\": " << k << ", "
+                    << "\"AFB size\": " << l << ", "
+                    << "\"QCB size\": " << t << ", "
+                    ;
+    }
+
     if(foundEarlyFactor){
-        std:: cout << "Found early factors of n among small primes" << std::endl;
         mpz_from_ZZ(L, fattore1);
         fattore1 = abs(fattore1);
         fattore2 = nMPZ/fattore1;
+
+        if(printStats){
+            std::clog << "\"outcome\": \"Found early factors among small primes\"";
+            std::clog << "}\n";
+        }
+
+        #ifdef DEBUG
+        std::cout << "Found early factors of n among small primes" << std::endl;
+        #endif
+
         return;
     }
 
@@ -112,17 +158,31 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
 
 
 // iterazioni esterne in caso di fail di blanczos
+for(int iterazioniEsterne = 0; iterazioniEsterne<20; iterazioniEsterne++){
 
     std::vector<smoothElemGNFS> smooths;
     long numSmooths = 0, rationalPrimes = 0, algebraicPrimes = 0;
     uint64_t entries = 0ull;
     ZZ fatt1sieve(0);
     std::tie(entries, fatt1sieve) = sieve(n, m, f, logMaxP2, L, b, maxA, logm, t, numSmooths, rationalPrimes, algebraicPrimes, primes, RFB, AFB, smooths);
+    if(printStats){
+        // tempo per il sieving (le altre stat le ho printate in sieve)
+        printElapsedTime("Time to activate sieve", t1);
+    }
     if(fatt1sieve != 0){
-        std:: cout << "Found early factors of n among large primes" << std::endl;
         mpz_from_ZZ(fatt1sieve, fattore1);
         fattore1 = abs(fattore1);
         fattore2 = nMPZ/fattore1;
+
+        if(printStats){
+            std::clog << "\"outcome\": \"Found early factors among large primes\"";
+            std::clog << "}\n";
+        }
+
+        #ifdef DEBUG
+        std::cout << "Found early factors of n among large primes" << std::endl;
+        #endif
+
         return;
     }
 
@@ -135,6 +195,14 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
 
     // 3.a preprocessing (trial division (già fatta in sieve), segno (già fatto in sieve), e quadratic characters)
     uint64_t entries2 = getMatrix(mat, smooths, rationalPrimes, algebraicPrimes, QCB);  // dopo la chiamata, in smooths resteranno solo le coppie (a,b) per risparmiare memoria
+    if(printStats){
+        printElapsedTime("Time to build matrix", t1);
+        std::clog   << "\"Matrix rows\": " << nRows << ", "
+                    << "\"Matrix cols\": " << nCols << ", "
+                    << "\"Matrix entries\": " << entries2 << ", "
+                    << "\"Entries per row\": " << (entries2/double(nRows)) << ", "
+        ;
+    }
 
     // 3.b block lanczos
     std::vector<uint64_t> result;
@@ -144,6 +212,15 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
     uint64_t totSol = (1ull<<(Nsol -1ull)) - 1ull;      // un po' sus ma dovrebbe andare
     totSol = (totSol<<1ull) + 1ull;
     if(Nsol == 0) totSol = 0;
+
+    if(printStats){
+        // stampare tempo per algebra lineare
+        printElapsedTime("Time for linear algebra", t1);
+
+        std::clog   << "\"Nullspace vectors\": " << Nsol << ", "
+                    << "\"Span size:\": " << totSol << ", "
+        ;
+    }
 
     #ifdef DEBUG
     std::cout << "Dimensione base nullspace trovata: " << Nsol << std::endl;
@@ -173,6 +250,10 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
                 U.push_back(i);
             }
         }
+        if(printStats){
+        std::clog   << "\"U size\": " << U.size() << ", "
+        ;
+    }
         #ifdef DEBUG
         std::cout << "Dimensione di U: " << U.size() << std::endl;
         #endif
@@ -192,15 +273,17 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
         y = 1;
         computeProdMod(n, ratFat, y);
         y *= eval(conv<ZZ_pX>(fPrime), conv<ZZ_p>(m));
-        if(y==0){
+        /*if(y==0){
             std::cout << "f'(m) mod n: " << eval(conv<ZZ_pX>(fPrime), conv<ZZ_p>(m)) << std::endl;
-        }
+        }*/
 
 
         // 4.b trovare finite fields applicabili /aggiungerne altri se non bastano
         estimateXSize(f, U, smooths, approxSizeX);
+
+        // approxSizeX rischia di diventare enorme quindi non lo stampo in printStats per non intasare i file
         #ifdef DEBUG
-        //std::cout << "Stima dimensione di x: " << approxSizeX << std::endl;
+        std::cout << "Stima dimensione di x: " << approxSizeX << std::endl;
         // 14272809293693672760236472311799071135480407340249456409739060630501718744859577807931963255944303817439600981719075140666405677019619267901277870858178618119743873407633109288774679593737780130609434906310650203342053608298307114931428407828641589656896990339587685062445103299971959988673570146435627636662672823036279746539829357096909005032932471318588477554189580069502760522665091841972483256163067600440067555756560726271436226408770502440639815161267283733103462972385810397545849300000933799258565095946576701402211193850929303677608722460439167668820423613379887943909376
         #endif
         while(prodInIPB < approxSizeX){
@@ -215,14 +298,29 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
             #endif*/
 
             if(n%inertPrime == 0){
-                std:: cout << "Found early factors of n among inert primes" << std::endl;
                 mpz_from_ZZ(inertPrime, fattore1);
                 fattore1 = abs(fattore1);
                 fattore2 = nMPZ/fattore1;
+
+                if(printStats){
+                    std::clog << "\"outcome\": \"Found early factors among inert primes\"";
+                    std::clog << "}\n";
+                }
+
+                #ifdef DEBUG
+                std::cout << "Found early factors of n among inert primes" << std::endl;
+                #endif
+
                 return;
             }
         }
+        if(printStats){
+            // stampare tempo per costruire IPB
+            printElapsedTime("Time to build IPB", t1);
 
+            std::clog   << "\"IPB size\": " << IPB.size() << ", "
+            ;
+        }
         #ifdef DEBUG
         std::cout << "IPB size: " << IPB.size() << std::endl;
         #endif
@@ -263,7 +361,9 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
         pol = conv<ZZ_pX>(esse) - conv<ZZ_p>(prodInIPB)*conv<ZZ_pX>(zeta);
         x = eval(pol, conv<ZZ_p>(m));
 
-        std::cout << x*x-y*y << std::endl;
+        #ifdef DEBUG
+        std::cout << "x^2-y^2 mod n: " << x*x-y*y << std::endl;
+        #endif
 
         // 5. fattorizzare n
 
@@ -271,10 +371,10 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
         ZZ fatt1, fatt2;
         fatt1 = abs(GCD(conv<ZZ>(x-y), n));
         fatt2 = abs(GCD(conv<ZZ>(x+y), n));
-        std::cout << fatt1 << " " << fatt2 << std::endl;
+        /*std::cout << fatt1 << " " << fatt2 << std::endl;
         if(fatt1==n && fatt2 == n){
             std::cout << "x: " << x << ", y: " << y << std::endl;
-        }
+        }*/
 
         if(fatt1 == n) fatt1 = n/fatt2;     // potrebbero essere n e q --> vogliamo p e q
         if(fatt2 == n) fatt2 = n/fatt1;     // potrebbero essere p ed n --> vogliamo p e q
@@ -284,14 +384,39 @@ void gnfs(const mpz_class& nMPZ, mpz_class& fattore1, mpz_class& fattore2){
             mpz_from_ZZ(fatt1, fattore1);
             mpz_from_ZZ(fatt2, fattore2);
 
-            std::cout << "Trovati fattori in posizione: " << mask << std::endl;
+            if(printStats){
+                // stampare tempo per ultima fase
+                printElapsedTime("Time for roots and gcd", t1);
+
+                std::clog << "\"Non-trivial congruence position\": " << mask << ", ";
+                std::clog << "\"outcome\": \"Found smooth squares\"";
+                std::clog << "}\n";
+            }
+
+            #ifdef DEBUG
+                std::cout << "Trovati fattori in posizione: " << mask << std::endl;
+            #endif
             return;
         }
     }
 
     // 5. gestire fail...
+    if(printStats){
+        std::clog << "\"outcome " << (iterazioniEsterne+1) << "\": \"Failed\", ";
+    }
 
-    // svuotare le strutture dati usate solo dal sieving in poi
+    // svuotare le strutture dati usate solo dal sieving in poi,    ma in realtà non serve perché sono dichiarati dentro al for, quindi si svuotano da soli a ogni iterazione
+    //smooths.clear();
+    //usedPrimes.clear();
+    //mat.clear();
+    //result.clear();
+}
+
+    if(printStats){
+        std::clog << "\"outcome\": \"Failed all 20 tries\"";
+        std::clog << "}\n";
+    }
+
 }
 
 
@@ -355,7 +480,7 @@ std::pair<uint64_t, ZZ> sieve(const ZZ& n, const ZZ& m, const ZZX& f, const uint
 
     #ifdef DEBUG
     std::cout << "Start sieving, initial b=" << b << std::endl;
-    long modForPrint = 1;
+    long modForPrint = 10;
     #endif
 
     initSeed();                  // uno nuovo ogni volta che dobbiamo far ripartire il setaccio
@@ -377,13 +502,18 @@ std::pair<uint64_t, ZZ> sieve(const ZZ& n, const ZZ& m, const ZZX& f, const uint
     maxP(primes.back().first),
     aMinusBm, normAB, tmp;
     ZZX fb;
+    long iterazioni = 0, newFound;                    // per statistiche
+    double smoothsOverReportsAvg = 0;
 
     idealMap usedRatPrimes, usedAlgPrimes;         // comprende solo i primi usati
     usedRatPrimes[{conv<ZZ>(-1), conv<ZZ>(0)}] = 0u;
     usedAlgPrimes[{conv<ZZ>(-1), conv<ZZ>(0)}] = 0u;
 
-    for(; numSmooths < rationalPrimes + algebraicPrimes + quadChars + threshold; b++){
     // iterazioni su b=1... finché non si trovano abbastanza coppie smooth
+    for(; numSmooths < rationalPrimes + algebraicPrimes + quadChars + threshold; b++){
+        iterazioni++;
+        newFound = 0;
+
         tmp = 1;
         for(long i = deg(f); i>=0; i--){
             SetCoeff(fb, i, coeff(f, i)*tmp);
@@ -493,16 +623,23 @@ std::pair<uint64_t, ZZ> sieve(const ZZ& n, const ZZ& m, const ZZX& f, const uint
             //*/
 
             numSmooths++;
+            newFound++;
         }
 
         rationalPrimes = usedRatPrimes.size();
         algebraicPrimes = usedAlgPrimes.size();
         probSmooths.clear();
+
+        if(probSmoothFound > 0){
+            smoothsOverReportsAvg += newFound/((double) probSmoothFound);
+        }
     }
+
+    smoothsOverReportsAvg /= std::max(iterazioni, 1l);
 
     #ifdef DEBUG
     std::cerr << std::endl;
-    std::cerr << "After " << b << " iteration(s):" << std::endl;
+    std::cerr << "After " << iterazioni << " iteration(s):" << std::endl;
     //printSmooths(smooths);
     std::cout << "numSmooths: " << numSmooths << std::endl;
     std::cout << "rationalPrimes: " << rationalPrimes << std::endl;
@@ -510,6 +647,22 @@ std::pair<uint64_t, ZZ> sieve(const ZZ& n, const ZZ& m, const ZZX& f, const uint
     std::cout << "quadChars: " << quadChars << std::endl;
     std::cerr << std::endl;
     #endif
+
+    if(printStats){
+        // stampare tempo per setaccio: fuori
+
+        std::clog   << "\"Calls to lineSieve()\": " << iterazioni << ", "
+                    << "\"Num of large rational primes\": " << newRatPrimes << ", "
+                    << "\"Num of large algebraic primes\": " << newAlgPrimes << ", "
+                    << "\"Total rational primes\": " << rationalPrimes << ", "
+                    << "\"Total algebraic primes\": " << algebraicPrimes << ", "
+                    << "\"Num of true smooths\": " << (numSmooths - partialSmooths) << ", "
+                    << "\"Num of partial smooths\": " << partialSmooths << ", "
+                    << "\"Biggest large prime\": " << maxNewP << ", "
+                    << "\"Total dim of sieving interval\": " << (iterazioni * (2*maxA + 1)) << ", "
+                    ;
+        ;
+    }
 
    return std::make_pair(entries, conv<ZZ>(0));
 }
@@ -615,7 +768,7 @@ void chooseParams(const mpz_class& n, long& d, ZZ& m, ZZX& f, ZZ& B){
     mpz_root(mend.get_mpz_t(), tmp.get_mpz_t(), d);
     mend++;
 
-    if(mend < mstart - 1'000'000) mend = mstart - 1'000'000;    // facciamo massimo 1mln di prove
+    if(mend < mstart - 10'000*((int)logn)) mend = mstart - 10'000*((int)logn);    // limito il numero di prove
 
     for(mcurr = mstart; mcurr >= mend; mcurr--){
         tmp = n;
@@ -637,11 +790,13 @@ void chooseParams(const mpz_class& n, long& d, ZZ& m, ZZX& f, ZZ& B){
             lastCoeff = currCoeff;
         }
 
+        #ifdef DEBUG
         if(lastCoeff != 1){
             mpz_pow_ui(tmp.get_mpz_t(), mcurr.get_mpz_t(), d);
-            std::cerr << "Errore nella scrittura in base m " << n/tmp << " " << lastCoeff << std::endl;
+            std::cerr << "\"Error\": \"Errore nella scrittura in base m " << n/tmp << " " << lastCoeff  << "\"" << std::endl;
             exit(3);
         }
+        #endif
 
         if(currCoeffSize < bestCoeffSize){
             bestCoeffSize = currCoeffSize;
@@ -661,6 +816,13 @@ void chooseParams(const mpz_class& n, long& d, ZZ& m, ZZX& f, ZZ& B){
             SetCoeff(f, i-1, coeff(f, i-1)-m);
             SetCoeff(f, i, coeff(f, i)+1);
         }
+    }
+
+    if(coeff(f, d) != 1){
+        tmpZZ = power(m, d);
+        ZZ nZZ; mpz_2_ZZ(n, nZZ);
+        std::clog << "\"Error\": \"Errore nella scrittura in base m " << nZZ/tmpZZ << " " << coeff(f, d)  << "\"}\n" << std::endl;
+        exit(3);
     }
 
 }

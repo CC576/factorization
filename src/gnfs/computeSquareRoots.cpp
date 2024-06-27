@@ -65,12 +65,15 @@ void computeProdMod(const ZZ& modulo, const factorization& fat, ZZ_p& res){
 
     for(auto& fattore : fat){
         res *= power(conv<ZZ_p>(fattore.first), fattore.second);
-        if(fattore.first%modulo == 0){
+
+        #ifdef DEBUG
+        if(fattore.first % modulo == 0){
             std::cout << "Warning: " << fattore.first << " in factorization is multiple of modulus " << modulo <<std::endl;
         }
         if(modulo % fattore.first == 0){
             std::cout << "Warning: modulo=" << modulo << " is multiple of factor=" << fattore.first <<std::endl;
         }
+        #endif
     }
 }
 
